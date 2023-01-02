@@ -6,7 +6,7 @@ import (
 )
 
 type Zone struct {
-	ID        uint           `gorm:"primarykey" jsonapi:"primary,record"`
+	ID        string         `gorm:"primarykey" jsonapi:"primary,record"`
 	CreatedAt time.Time      `jsonapi:"attribute" json:"created_at"`
 	UpdatedAt time.Time      `jsonapi:"attribute" json:"updated_at"`
 	DeletedAt gorm.DeletedAt `gorm:"index" jsonapi:"attribute" json:"deleted_at"`
