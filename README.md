@@ -1,3 +1,5 @@
+[![Go Report Card](https://goreportcard.com/badge/github.com/ncode/trutinha)](https://goreportcard.com/report/github.com/ncode/trutinha)
+
 # Trutinha
 Dns something something
 
