@@ -2,15 +2,15 @@ package api
 
 import (
 	"github.com/DataDog/jsonapi"
+	"github.com/labstack/echo/v4"
 	"github.com/ncode/trutinha/pkg/binder"
 	"github.com/ncode/trutinha/pkg/database"
 	"github.com/ncode/trutinha/pkg/model"
 	"github.com/spf13/viper"
 	"github.com/stretchr/testify/assert"
 	"net/http"
+	"strings"
 	"testing"
-
-	"github.com/labstack/echo/v4"
 )
 
 func init() {
@@ -81,7 +81,7 @@ func TestCreateBackendIDAlreadyExists(t *testing.T) {
 	}
 
 	routeBackend := &BackendRoute{db: db}
-	c, recPost := postTestRequest("/v1/backends", backendPayload, e)
+	c, _ := postTestRequest("/v1/backends", backendPayload, e)
 	err = routeBackend.Create(c)
 	assert.NoError(t, err)
 
@@ -89,7 +89,25 @@ func TestCreateBackendIDAlreadyExists(t *testing.T) {
 	err = routeBackend.Create(c)
 	if assert.NoError(t, err) {
 		assert.Equal(t, http.StatusConflict, recFailPost.Code)
-		assert.Equal(t, binder.MIMEApplicationJSONApi, recPost.Header().Get(echo.HeaderContentType))
+		assert.Equal(t, echo.MIMETextPlainCharsetUTF8, recFailPost.Header().Get(echo.HeaderContentType))
 		assert.Contains(t, recFailPost.Header().Get(echo.HeaderLocation), backendResult.ID)
+	}
+}
+
+func TestCreateBackendNameEmpty(t *testing.T) {
+	e := echo.New()
+	e.Binder = &binder.JsonApiBinder{}
+
+	db, err := database.Database()
+	if err != nil {
+		panic(err)
+	}
+
+	routeBackend := &BackendRoute{db: db}
+	c, recPost := postTestRequest("/v1/backends", strings.Replace(backendPayload, "bind", "", -1), e)
+	err = routeBackend.Create(c)
+	if assert.NoError(t, err) {
+		assert.Equal(t, http.StatusBadRequest, recPost.Code)
+		assert.Equal(t, echo.MIMETextPlainCharsetUTF8, recPost.Header().Get(echo.HeaderContentType))
 	}
 }
