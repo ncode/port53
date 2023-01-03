@@ -48,6 +48,16 @@ func (r *BackendRoute) Create(c echo.Context) (err error) {
 	return c.Blob(http.StatusCreated, binder.MIMEApplicationJSONApi, marshal)
 }
 
+func (r *BackendRoute) List(c echo.Context) (err error) {
+	var backends []model.Backend
+	r.db.Preload("Zones").Find(&backends)
+	marshal, err := jsonapi.Marshal(backends)
+	if err != nil {
+		return err
+	}
+	return c.Blob(http.StatusOK, binder.MIMEApplicationJSONApi, marshal)
+}
+
 func (r *BackendRoute) Get(c echo.Context) (err error) {
 	var backend model.Backend
 	r.db.Preload("Zones").First(&backend, "id = ?", c.Param("id"))
@@ -68,5 +78,7 @@ func (r *BackendRoute) Delete(c echo.Context) (err error) {
 
 func (r *BackendRoute) Register(e *echo.Echo) {
 	e.GET("/v1/backend/:id", r.Get)
+	e.DELETE("/v1/backend/:id", r.Delete)
 	e.POST("/v1/backend", r.Create)
+	e.GET("/v1/backend", r.List)
 }
