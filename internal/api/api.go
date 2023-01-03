@@ -11,7 +11,6 @@ import (
 
 func Server() {
 	e := echo.New()
-	e.Binder = &binder.JsonApiBinder{}
 
 	switch viper.GetString("logLevel") {
 	case "DEBUG":
@@ -26,6 +25,7 @@ func Server() {
 	case "OFF":
 		e.Logger.SetLevel(log.OFF)
 	}
+	e.Binder = &binder.JsonApiBinder{}
 
 	e.Use(middleware.RequestID())
 	e.Use(middleware.Recover())
