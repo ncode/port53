@@ -14,5 +14,5 @@ type Record struct {
 	TTL       int            `gorm:"default:3600" jsonapi:"attribute" json:"ttl"`
 	Type      string         `jsonapi:"attribute" json:"type"`
 	Data      string         `jsonapi:"attribute" json:"data"`
-	Zone      *Zone          `gorm:"foreignKey:ZoneID" jsonapi:"relationship" json:"zone"`
+	ZoneID    string         `gorm:"foreignKey:ZoneID" jsonapi:"relationship" json:"zone"`
 }

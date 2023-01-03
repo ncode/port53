@@ -5,16 +5,17 @@ import (
 	"github.com/labstack/echo/v4/middleware"
 	"github.com/labstack/gommon/log"
 	"github.com/ncode/trutinha/pkg/binder"
+	"github.com/ncode/trutinha/pkg/database"
 	"github.com/spf13/viper"
 )
 
 func Server() {
 	e := echo.New()
-	e.Debug = viper.GetBool("debug")
 	e.Binder = &binder.JsonApiBinder{}
 
 	switch viper.GetString("logLevel") {
 	case "DEBUG":
+		e.Debug = true
 		e.Logger.SetLevel(log.DEBUG)
 	case "INFO":
 		e.Logger.SetLevel(log.INFO)
@@ -30,7 +31,12 @@ func Server() {
 	e.Use(middleware.Recover())
 	e.Use(middleware.LoggerWithConfig(middleware.DefaultLoggerConfig))
 
-	backend := &BackendRoute{}
+	db, err := database.Database()
+	if err != nil {
+		e.Logger.Fatal(err)
+	}
+
+	backend := &BackendRoute{db: db}
 	backend.Register(e)
 	e.Logger.Fatal(e.Start(viper.GetString("bindAddr")))
 }
