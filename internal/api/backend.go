@@ -29,7 +29,6 @@ func (r *BackendRoute) Create(c echo.Context) (err error) {
 		backend.ID = ulid.Make().String()
 	}
 	status := r.db.Create(&backend)
-	fmt.Println(status.Error.Error())
 	if status.Error != nil {
 		if status.Error.Error() == "UNIQUE constraint failed: backends.name" {
 			var existingBackend model.Backend
@@ -51,7 +50,6 @@ func (r *BackendRoute) Create(c echo.Context) (err error) {
 
 func (r *BackendRoute) Get(c echo.Context) (err error) {
 	var backend model.Backend
-	fmt.Println(c.Param("id"))
 	r.db.Preload("Zones").First(&backend, "id = ?", c.Param("id"))
 	if backend.ID == "" {
 		return c.String(http.StatusNotFound, "Not found")
@@ -61,6 +59,11 @@ func (r *BackendRoute) Get(c echo.Context) (err error) {
 		return err
 	}
 	return c.Blob(http.StatusOK, binder.MIMEApplicationJSONApi, marshal)
+}
+
+func (r *BackendRoute) Delete(c echo.Context) (err error) {
+	r.db.Where("id = ?", c.Param("id")).Delete(&model.Backend{})
+	return c.NoContent(http.StatusNoContent)
 }
 
 func (r *BackendRoute) Register(e *echo.Echo) {
