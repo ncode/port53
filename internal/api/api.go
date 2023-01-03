@@ -32,5 +32,5 @@ func Server() {
 
 	backend := &BackendRoute{}
 	backend.Register(e)
-	e.Logger.Fatal(e.Start(":1323"))
+	e.Logger.Fatal(e.Start(viper.GetString("bindAddr")))
 }
