@@ -77,6 +77,9 @@ func (r *BackendRoute) Get(c echo.Context) (err error) {
 	if backend.ID == "" {
 		return c.String(http.StatusNotFound, "Not found")
 	}
+	if len(backend.Zones) == 0 {
+		backend.Zones = nil
+	}
 	marshal, err := jsonapi.Marshal(backend)
 	if err != nil {
 		return err
