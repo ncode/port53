@@ -4,13 +4,12 @@ import (
 	"fmt"
 	"github.com/DataDog/jsonapi"
 	"github.com/ncode/trutinha/pkg/binder"
+	"github.com/spf13/viper"
 	"gorm.io/gorm"
 	"net/http"
 
-	"github.com/ncode/trutinha/pkg/model"
-	"github.com/oklog/ulid/v2"
-
 	"github.com/labstack/echo/v4"
+	"github.com/ncode/trutinha/pkg/model"
 )
 
 type BackendRoute struct {
@@ -25,18 +24,15 @@ func (r *BackendRoute) Create(c echo.Context) (err error) {
 	if backend.Name == "" {
 		return c.String(http.StatusBadRequest, "Name is required")
 	}
-	if backend.ID == "" {
-		backend.ID = ulid.Make().String()
-	}
 	status := r.db.Create(&backend)
 	if status.Error != nil {
 		if status.Error.Error() == "UNIQUE constraint failed: backends.name" {
 			var existingBackend model.Backend
 			r.db.First(&existingBackend, "name = ?", backend.Name)
-			c.Response().Header().Set("Location", fmt.Sprintf("/v1/backend/%s", existingBackend.ID))
+			c.Response().Header().Set("Location", fmt.Sprintf("%s/v1/backends/%s", viper.GetString("serviceUrl"), existingBackend.ID))
 			return c.String(http.StatusConflict, "Backend already exists")
 		} else if status.Error.Error() == "UNIQUE constraint failed: backends.id" {
-			c.Response().Header().Set("Location", fmt.Sprintf("/v1/backend/%s", backend.ID))
+			c.Response().Header().Set("Location", fmt.Sprintf("%s/v1/backends/%s", viper.GetString("serviceUrl"), backend.ID))
 			return c.String(http.StatusConflict, "Backend already exists")
 		}
 		return c.String(http.StatusInternalServerError, status.Error.Error())
@@ -77,8 +73,8 @@ func (r *BackendRoute) Delete(c echo.Context) (err error) {
 }
 
 func (r *BackendRoute) Register(e *echo.Echo) {
-	e.GET("/v1/backend/:id", r.Get)
-	e.DELETE("/v1/backend/:id", r.Delete)
-	e.POST("/v1/backend", r.Create)
-	e.GET("/v1/backend", r.List)
+	e.GET("/v1/backends/:id", r.Get)
+	e.DELETE("/v1/backends/:id", r.Delete)
+	e.POST("/v1/backends", r.Create)
+	e.GET("/v1/backends", r.List)
 }

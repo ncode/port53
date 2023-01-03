@@ -81,6 +81,7 @@ func initConfig() {
 
 	viper.AutomaticEnv() // read in environment variables that match
 	viper.SetDefault("bindAddr", ":9023")
+	viper.SetDefault("serviceUrl", "http://localhost:9023")
 	viper.SetDefault("logLevel", "INFO")
 	viper.SetDefault("database", "/tmp/trutinha.db")
 
