@@ -29,10 +29,10 @@ func (r *BackendRoute) Create(c echo.Context) (err error) {
 		if status.Error.Error() == "UNIQUE constraint failed: backends.name" {
 			var existingBackend model.Backend
 			r.db.First(&existingBackend, "name = ?", backend.Name)
-			c.Response().Header().Set("Location", fmt.Sprintf("%s/v1/backends/%s", viper.GetString("serviceUrl"), existingBackend.ID))
+			c.Response().Header().Set(echo.HeaderLocation, fmt.Sprintf("%s/v1/backends/%s", viper.GetString("serviceUrl"), existingBackend.ID))
 			return c.String(http.StatusConflict, "Backend already exists")
 		} else if status.Error.Error() == "UNIQUE constraint failed: backends.id" {
-			c.Response().Header().Set("Location", fmt.Sprintf("%s/v1/backends/%s", viper.GetString("serviceUrl"), backend.ID))
+			c.Response().Header().Set(echo.HeaderLocation, fmt.Sprintf("%s/v1/backends/%s", viper.GetString("serviceUrl"), backend.ID))
 			return c.String(http.StatusConflict, "Backend already exists")
 		}
 		return c.String(http.StatusInternalServerError, status.Error.Error())
