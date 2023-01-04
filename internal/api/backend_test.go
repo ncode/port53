@@ -1,6 +1,7 @@
 package api
 
 import (
+	"fmt"
 	"github.com/DataDog/jsonapi"
 	"github.com/labstack/echo/v4"
 	"github.com/ncode/trutinha/pkg/binder"
@@ -90,7 +91,7 @@ func TestCreateBackendIDAlreadyExists(t *testing.T) {
 	if assert.NoError(t, err) {
 		assert.Equal(t, http.StatusConflict, recFailPost.Code)
 		assert.Equal(t, echo.MIMETextPlainCharsetUTF8, recFailPost.Header().Get(echo.HeaderContentType))
-		assert.Contains(t, recFailPost.Header().Get(echo.HeaderLocation), backendResult.ID)
+		assert.Equal(t, recFailPost.Header().Get(echo.HeaderLocation), fmt.Sprintf("%s/v1/backends/%s", viper.GetString("serviceUrl"), backendResult.ID))
 	}
 }
 
