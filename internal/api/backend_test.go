@@ -132,4 +132,11 @@ func TestDeleteBackend(t *testing.T) {
 	if assert.NoError(t, routeBackend.Delete(c)) {
 		assert.Equal(t, http.StatusNoContent, recDelete.Code)
 	}
+
+	c, recGet := getTestRequest("/v1/backends/:id", e)
+	c.SetParamNames("id")
+	c.SetParamValues(backendResult.ID)
+	if assert.NoError(t, routeBackend.Get(c)) {
+		assert.Equal(t, http.StatusNotFound, recGet.Code)
+	}
 }
