@@ -38,5 +38,8 @@ func Server() {
 
 	backend := &BackendRoute{db: db}
 	backend.Register(e)
+	zone := &ZoneRoute{db: db}
+	zone.Register(e)
+
 	e.Logger.Fatal(e.Start(viper.GetString("bindAddr")))
 }

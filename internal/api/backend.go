@@ -24,18 +24,21 @@ func (r *BackendRoute) Create(c echo.Context) (err error) {
 	if backend.Name == "" {
 		return c.String(http.StatusBadRequest, "Name is required")
 	}
-	status := r.db.Create(&backend)
-	if status.Error != nil {
-		if status.Error.Error() == "UNIQUE constraint failed: backends.name" {
+	err = r.db.Create(&backend).Error
+	if err != nil {
+		if err.Error() == "UNIQUE constraint failed: backends.name" {
 			var existingBackend model.Backend
-			r.db.First(&existingBackend, "name = ?", backend.Name)
+			err = r.db.First(&existingBackend, "name = ?", backend.Name).Error
+			if err != nil {
+				return err
+			}
 			c.Response().Header().Set(echo.HeaderLocation, fmt.Sprintf("%s/v1/backends/%s", viper.GetString("serviceUrl"), existingBackend.ID))
 			return c.String(http.StatusConflict, "Backend already exists")
-		} else if status.Error.Error() == "UNIQUE constraint failed: backends.id" {
+		} else if err.Error() == "UNIQUE constraint failed: backends.id" {
 			c.Response().Header().Set(echo.HeaderLocation, fmt.Sprintf("%s/v1/backends/%s", viper.GetString("serviceUrl"), backend.ID))
 			return c.String(http.StatusConflict, "Backend already exists")
 		}
-		return c.String(http.StatusInternalServerError, status.Error.Error())
+		return c.String(http.StatusInternalServerError, err.Error())
 	}
 	marshal, err := jsonapi.Marshal(backend)
 	if err != nil {
@@ -46,7 +49,20 @@ func (r *BackendRoute) Create(c echo.Context) (err error) {
 
 func (r *BackendRoute) List(c echo.Context) (err error) {
 	var backends []model.Backend
-	r.db.Preload("Zones").Find(&backends)
+	include := c.QueryParam("include")
+	if include == "zones" {
+		err = r.db.Preload("Zones").Find(&backends).Error
+	} else {
+		err = r.db.Find(&backends).Error
+	}
+	if err != nil {
+		return err
+	}
+	for pos, backend := range backends {
+		if len(backend.Zones) == 0 {
+			backends[pos].Zones = nil
+		}
+	}
 	marshal, err := jsonapi.Marshal(backends)
 	if err != nil {
 		return err
@@ -56,7 +72,10 @@ func (r *BackendRoute) List(c echo.Context) (err error) {
 
 func (r *BackendRoute) Update(c echo.Context) (err error) {
 	var backend model.Backend
-	r.db.First(&backend, "id = ?", c.Param("id"))
+	err = r.db.First(&backend, "id = ?", c.Param("id")).Error
+	if err != nil {
+		return err
+	}
 	if backend.ID == "" {
 		return c.String(http.StatusNotFound, "Backend not found")
 	}
@@ -73,7 +92,15 @@ func (r *BackendRoute) Update(c echo.Context) (err error) {
 
 func (r *BackendRoute) Get(c echo.Context) (err error) {
 	var backend model.Backend
-	r.db.Preload("Zones").First(&backend, "id = ?", c.Param("id"))
+	include := c.QueryParam("include"
+	if include == "zones" {
+		err = r.db.Preload("Zones").First(&backend, "id = ?", c.Param("id")).Error
+	} else {
+		err = r.db.First(&backend, "id = ?", c.Param("id")).Error
+	}
+	if err != nil {
+		return err
+	}
 	if backend.ID == "" {
 		return c.String(http.StatusNotFound, "Not found")
 	}
@@ -88,7 +115,10 @@ func (r *BackendRoute) Get(c echo.Context) (err error) {
 }
 
 func (r *BackendRoute) Delete(c echo.Context) (err error) {
-	r.db.Where("id = ?", c.Param("id")).Delete(&model.Backend{})
+	err = r.db.Where("id = ?", c.Param("id")).Delete(&model.Backend{}).Error
+	if err != nil {
+		return err
+	}
 	return c.NoContent(http.StatusNoContent)
 }
 
@@ -168,7 +198,15 @@ func (r *BackendRoute) UpdateZone(c echo.Context) (err error) {
 	if err != nil {
 		return err
 	}
-	return r.Get(c)
+	var links []jsonapi.MarshalOption
+	for _, zone := range zones {
+		links = append(links, jsonapi.MarshalLinks(zone.Link()))
+	}
+	marshal, err := jsonapi.Marshal(zones, links...)
+	if err != nil {
+		return err
+	}
+	return c.Blob(http.StatusOK, binder.MIMEApplicationJSONApi, marshal)
 }
 
 func (r *BackendRoute) Register(e *echo.Echo) {
@@ -182,5 +220,4 @@ func (r *BackendRoute) Register(e *echo.Echo) {
 	e.POST("/v1/backends/:id/zones", r.AddZone)
 	e.PATCH("/v1/backends/:id/zones", r.UpdateZone)
 	e.DELETE("/v1/backends/:id/zones", r.RemoveZone)
-
 }
