@@ -4,8 +4,8 @@ import (
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
 	"github.com/labstack/gommon/log"
-	"github.com/ncode/trutinha/pkg/binder"
-	"github.com/ncode/trutinha/pkg/database"
+	"github.com/ncode/port53/pkg/binder"
+	"github.com/ncode/port53/pkg/database"
 	"github.com/spf13/viper"
 )
 

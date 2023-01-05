@@ -16,7 +16,7 @@ limitations under the License.
 package cmd
 
 import (
-	"github.com/ncode/trutinha/internal/api"
+	"github.com/ncode/port53/internal/api"
 
 	"github.com/spf13/cobra"
 )

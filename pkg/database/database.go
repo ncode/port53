@@ -1,11 +1,12 @@
 package database
 
 import (
-	"github.com/ncode/trutinha/pkg/model"
+	"time"
+
+	"github.com/ncode/port53/pkg/model"
 	"github.com/spf13/viper"
 	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
-	"time"
 )
 
 var database *gorm.DB

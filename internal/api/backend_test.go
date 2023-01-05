@@ -8,9 +8,9 @@ import (
 
 	"github.com/DataDog/jsonapi"
 	"github.com/labstack/echo/v4"
-	"github.com/ncode/trutinha/pkg/binder"
-	"github.com/ncode/trutinha/pkg/database"
-	"github.com/ncode/trutinha/pkg/model"
+	"github.com/ncode/port53/pkg/binder"
+	"github.com/ncode/port53/pkg/database"
+	"github.com/ncode/port53/pkg/model"
 	"github.com/spf13/viper"
 	"github.com/stretchr/testify/assert"
 )

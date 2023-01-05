@@ -5,12 +5,12 @@ import (
 	"net/http"
 
 	"github.com/DataDog/jsonapi"
-	"github.com/ncode/trutinha/pkg/binder"
+	"github.com/ncode/port53/pkg/binder"
 	"github.com/spf13/viper"
 	"gorm.io/gorm"
 
 	"github.com/labstack/echo/v4"
-	"github.com/ncode/trutinha/pkg/model"
+	"github.com/ncode/port53/pkg/model"
 )
 
 type BackendRoute struct {

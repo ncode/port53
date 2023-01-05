@@ -6,7 +6,7 @@ import (
 	"strings"
 
 	"github.com/labstack/echo/v4"
-	"github.com/ncode/trutinha/pkg/binder"
+	"github.com/ncode/port53/pkg/binder"
 )
 
 func getTestRequest(target string, e *echo.Echo) (c echo.Context, recGet *httptest.ResponseRecorder) {

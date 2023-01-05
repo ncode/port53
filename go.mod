@@ -1,4 +1,4 @@
-module github.com/ncode/trutinha
+module github.com/ncode/port53
 
 go 1.19
 
