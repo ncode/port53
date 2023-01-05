@@ -25,9 +25,6 @@ type Record struct {
 func (r *Record) Link() *jsonapi.Link {
 	return &jsonapi.Link{
 		Self: fmt.Sprintf("%s/v1/records/%s", viper.GetString("serviceUrl"), r.ID),
-		Related: &jsonapi.LinkObject{
-			Href: fmt.Sprintf("%s/v1/records/%s/zone", viper.GetString("serviceUrl"), r.ID),
-		},
 	}
 }
 
