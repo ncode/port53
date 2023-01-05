@@ -2,11 +2,12 @@ package model
 
 import (
 	"fmt"
+	"time"
+
 	"github.com/DataDog/jsonapi"
 	"github.com/oklog/ulid/v2"
 	"github.com/spf13/viper"
 	"gorm.io/gorm"
-	"time"
 )
 
 type Zone struct {
@@ -30,10 +31,18 @@ type Zone struct {
 func (z *Zone) Link() *jsonapi.Link {
 	return &jsonapi.Link{
 		Self: fmt.Sprintf("%s/v1/zones/%s", viper.GetString("serviceUrl"), z.ID),
-		Related: &jsonapi.LinkObject{
-			Href: fmt.Sprintf("%s/v1/zones/%s/records", viper.GetString("serviceUrl"), z.ID),
-			Meta: map[string]int{
-				"count": len(z.Records),
+		Related: []*jsonapi.LinkObject{
+			{
+				Href: fmt.Sprintf("%s/v1/backend/%s/zones", viper.GetString("serviceUrl"), z.ID),
+				Meta: map[string]int{
+					"count": len(z.Backends),
+				},
+			},
+			{
+				Href: fmt.Sprintf("%s/v1/recods/%s/zones", viper.GetString("serviceUrl"), z.ID),
+				Meta: map[string]int{
+					"count": len(z.Records),
+				},
 			},
 		},
 	}

@@ -2,11 +2,12 @@ package model
 
 import (
 	"fmt"
+	"time"
+
 	"github.com/DataDog/jsonapi"
 	"github.com/oklog/ulid/v2"
 	"github.com/spf13/viper"
 	"gorm.io/gorm"
-	"time"
 )
 
 type Record struct {
@@ -19,6 +20,15 @@ type Record struct {
 	Type      string         `gorm:"not null" jsonapi:"attribute" json:"type"`
 	Data      string         `gorm:"not null" jsonapi:"attribute" json:"data"`
 	ZoneID    string         `gorm:"foreignKey:ZoneID" jsonapi:"relationship" json:"zone,omitempty"`
+}
+
+func (r *Record) Link() *jsonapi.Link {
+	return &jsonapi.Link{
+		Self: fmt.Sprintf("%s/v1/records/%s", viper.GetString("serviceUrl"), r.ID),
+		Related: &jsonapi.LinkObject{
+			Href: fmt.Sprintf("%s/v1/records/%s/zone", viper.GetString("serviceUrl"), r.ID),
+		},
+	}
 }
 
 func (r *Record) LinkRelation(relation string) *jsonapi.Link {

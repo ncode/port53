@@ -2,11 +2,12 @@ package api
 
 import (
 	"fmt"
+	"net/http"
+
 	"github.com/DataDog/jsonapi"
 	"github.com/ncode/trutinha/pkg/binder"
 	"github.com/spf13/viper"
 	"gorm.io/gorm"
-	"net/http"
 
 	"github.com/labstack/echo/v4"
 	"github.com/ncode/trutinha/pkg/model"
@@ -92,7 +93,7 @@ func (r *BackendRoute) Update(c echo.Context) (err error) {
 
 func (r *BackendRoute) Get(c echo.Context) (err error) {
 	var backend model.Backend
-	include := c.QueryParam("include"
+	include := c.QueryParam("include")
 	if include == "zones" {
 		err = r.db.Preload("Zones").First(&backend, "id = ?", c.Param("id")).Error
 	} else {
