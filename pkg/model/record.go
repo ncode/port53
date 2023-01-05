@@ -10,14 +10,14 @@ import (
 )
 
 type Record struct {
-	ID        string         `gorm:"primarykey,not null" jsonapi:"primary,records"`
+	ID        string         `gorm:"primarykey;not null" jsonapi:"primary,records"`
 	CreatedAt time.Time      `jsonapi:"attribute" json:"created_at"`
 	UpdatedAt time.Time      `jsonapi:"attribute" json:"updated_at"`
 	DeletedAt gorm.DeletedAt `gorm:"index" json:"-"`
-	Name      string         `gorm:"uniqueIndex,not null" jsonapi:"attribute" json:"name"`
+	Name      string         `gorm:"uniqueIndex;not null" jsonapi:"attribute" json:"name"`
 	TTL       int            `gorm:"default:3600" jsonapi:"attribute" json:"ttl"`
-	Type      string         `jsonapi:"attribute,not null" json:"type"`
-	Data      string         `jsonapi:"attribute,not null" json:"data"`
+	Type      string         `gorm:"not null" jsonapi:"attribute" json:"type"`
+	Data      string         `gorm:"not null" jsonapi:"attribute" json:"data"`
 	ZoneID    string         `gorm:"foreignKey:ZoneID" jsonapi:"relationship" json:"zone,omitempty"`
 }
 

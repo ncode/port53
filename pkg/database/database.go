@@ -32,6 +32,7 @@ func Database() (db *gorm.DB, err error) {
 		sqlDB.SetConnMaxLifetime(time.Minute * 10)
 	}
 
+	database.Exec(`PRAGMA foreign_keys = ON;`)
 	database.Exec(`PRAGMA journal_mode=WAL;`)
 
 	return database, err

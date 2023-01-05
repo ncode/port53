@@ -14,10 +14,10 @@ type Zone struct {
 	CreatedAt time.Time      `jsonapi:"attribute" json:"created_at"`
 	UpdatedAt time.Time      `jsonapi:"attribute" json:"updated_at"`
 	DeletedAt gorm.DeletedAt `gorm:"index" json:"-"`
-	Name      string         `gorm:"uniqueIndex,not null" jsonapi:"attribute" json:"name"`
+	Name      string         `gorm:"uniqueIndex;not null" jsonapi:"attribute" json:"name"`
 	TTL       int            `gorm:"default:3600" jsonapi:"attribute" json:"ttl"`
-	MName     string         `gorm:"default:@,not null" jsonapi:"attribute" json:"mname"`
-	RName     string         `gorm:"default:admin,not null" jsonapi:"attribute" json:"rname"`
+	MName     string         `gorm:"default:@;not null" jsonapi:"attribute" json:"mname"`
+	RName     string         `gorm:"default:admin;not null" jsonapi:"attribute" json:"rname"`
 	Serial    int            `gorm:"default:1" jsonapi:"attribute" json:"serial"`
 	Refresh   int            `gorm:"default:3600" jsonapi:"attribute" json:"refresh"`
 	Retry     int            `gorm:"default:600" jsonapi:"attribute" json:"retry"`
@@ -25,6 +25,18 @@ type Zone struct {
 	Minimum   int            `gorm:"default:3600" jsonapi:"attribute" json:"minimum"`
 	Records   []*Record      `gorm:"foreignKey:ZoneID" jsonapi:"relationship" json:"records,omitempty"`
 	Backends  []*Backend     `gorm:"many2many:backend_zones;" jsonapi:"relationship" json:"backends,omitempty"`
+}
+
+func (z *Zone) Link() *jsonapi.Link {
+	return &jsonapi.Link{
+		Self: fmt.Sprintf("%s/v1/zones/%s", viper.GetString("serviceUrl"), z.ID),
+		Related: &jsonapi.LinkObject{
+			Href: fmt.Sprintf("%s/v1/zones/%s/records", viper.GetString("serviceUrl"), z.ID),
+			Meta: map[string]int{
+				"count": len(z.Records),
+			},
+		},
+	}
 }
 
 func (z *Zone) LinkRelation(relation string) *jsonapi.Link {
