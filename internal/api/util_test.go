@@ -1,11 +1,12 @@
 package api
 
 import (
-	"github.com/labstack/echo/v4"
-	"github.com/ncode/trutinha/pkg/binder"
 	"net/http"
 	"net/http/httptest"
 	"strings"
+
+	"github.com/labstack/echo/v4"
+	"github.com/ncode/trutinha/pkg/binder"
 )
 
 func getTestRequest(target string, e *echo.Echo) (c echo.Context, recGet *httptest.ResponseRecorder) {
@@ -22,11 +23,11 @@ func deleteTestRequest(target string, e *echo.Echo) (c echo.Context, recDelete *
 	return e.NewContext(del, recDelete), recDelete
 }
 
-func putTestRequest(target string, payload string, e *echo.Echo) (c echo.Context, recPut *httptest.ResponseRecorder) {
-	put := httptest.NewRequest(http.MethodPut, target, strings.NewReader(payload))
-	put.Header.Set(echo.HeaderContentType, binder.MIMEApplicationJSONApi)
-	recPut = httptest.NewRecorder()
-	return e.NewContext(put, recPut), recPut
+func patchTestRequest(target string, payload string, e *echo.Echo) (c echo.Context, recPatch *httptest.ResponseRecorder) {
+	patch := httptest.NewRequest(http.MethodPatch, target, strings.NewReader(payload))
+	patch.Header.Set(echo.HeaderContentType, binder.MIMEApplicationJSONApi)
+	recPatch = httptest.NewRecorder()
+	return e.NewContext(patch, recPatch), recPatch
 }
 
 func postTestRequest(target string, payload string, e *echo.Echo) (c echo.Context, recPost *httptest.ResponseRecorder) {

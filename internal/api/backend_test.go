@@ -2,6 +2,10 @@ package api
 
 import (
 	"fmt"
+	"net/http"
+	"strings"
+	"testing"
+
 	"github.com/DataDog/jsonapi"
 	"github.com/labstack/echo/v4"
 	"github.com/ncode/trutinha/pkg/binder"
@@ -9,9 +13,6 @@ import (
 	"github.com/ncode/trutinha/pkg/model"
 	"github.com/spf13/viper"
 	"github.com/stretchr/testify/assert"
-	"net/http"
-	"strings"
-	"testing"
 )
 
 func init() {
@@ -139,5 +140,54 @@ func TestDeleteBackend(t *testing.T) {
 	c.SetParamValues(backendResult.ID)
 	if assert.NoError(t, routeBackend.Get(c)) {
 		assert.Equal(t, http.StatusNotFound, recGet.Code)
+	}
+}
+
+func TestPatchBackendNameEmpty(t *testing.T) {
+	e := echo.New()
+	e.Binder = &binder.JsonApiBinder{}
+
+	db, err := database.Database()
+	if err != nil {
+		panic(err)
+	}
+
+	routeBackend := &BackendRoute{db: db}
+	c, _ := postTestRequest("/v1/backends", backendPayload, e)
+	err = routeBackend.Create(c)
+	assert.NoError(t, err)
+
+	c, recPatch := patchTestRequest("/v1/backends/:id", strings.Replace(backendPayload, "bind", "", -1), e)
+	c.SetParamNames("id")
+	c.SetParamValues(backendResult.ID)
+	if assert.NoError(t, routeBackend.Update(c)) {
+		assert.Equal(t, http.StatusBadRequest, recPatch.Code)
+	}
+}
+
+func TestPatchBackend(t *testing.T) {
+	e := echo.New()
+	e.Binder = &binder.JsonApiBinder{}
+
+	db, err := database.Database()
+	if err != nil {
+		panic(err)
+	}
+
+	routeBackend := &BackendRoute{db: db}
+	c, _ := postTestRequest("/v1/backends", backendPayload, e)
+	err = routeBackend.Create(c)
+	assert.NoError(t, err)
+
+	c, recPatch := patchTestRequest("/v1/backends/:id", strings.Replace(backendPayload, "bind", "powerdns", -1), e)
+	c.SetParamNames("id")
+	c.SetParamValues(backendResult.ID)
+	if assert.NoError(t, routeBackend.Update(c)) {
+		assert.Equal(t, http.StatusOK, recPatch.Code)
+		backend := &model.Backend{}
+		assert.Equal(t, binder.MIMEApplicationJSONApi, recPatch.Header().Get(echo.HeaderContentType))
+		assert.NoError(t, jsonapi.Unmarshal(recPatch.Body.Bytes(), backend))
+		assert.Equal(t, "powerdns", backend.Name)
+		assert.Equal(t, backendResult.ID, backend.ID)
 	}
 }
