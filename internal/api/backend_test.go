@@ -20,8 +20,12 @@ func init() {
 }
 
 var (
-	backendResult  = &model.Backend{ID: "01F1ZQZJXQXZJXZJXZJXZJXZJX", Name: "bind"}
-	backendPayload = `{"data":{"id":"01F1ZQZJXQXZJXZJXZJXZJXZJX","type":"backends","attributes":{"name":"bind"}}}`
+	backendResult           = &model.Backend{ID: "01F1ZQZJXQXZJXZJXZJXZJXZJX", Name: "bind"}
+	backendPayload          = `{"data":{"id":"01F1ZQZJXQXZJXZJXZJXZJXZJX","type":"backends","attributes":{"name":"bind"}}}`
+	backendZoneResult       = &model.Zone{ID: "01GP0JQGFM61EKSCDGRDZ6H6QX", Name: "martinez.io"}
+	backendZonePayload      = `{"data":{"id":"01GP0JQGFM61EKSCDGRDZ6H6QX","type":"zones","attributes":{"expire":604800,"minimum":3600,"mname":"@","name":"martinez.io","refresh":3600,"retry":600,"rname":"admin","serial":1,"ttl":3600}}}`
+	backendZonePatchPayload = `{"data":[{"id":"01GP0JQGFM61EKSCDGRDZ6H6QX", "type":"zones"}]}`
+	backendZonePostPayload  = `{"data":{"id":"01GP0JQGFM61EKSCDGRDZ6H6QX", "type":"zones"}}`
 )
 
 func TestCreateBackend(t *testing.T) {
@@ -189,5 +193,70 @@ func TestPatchBackend(t *testing.T) {
 		assert.NoError(t, jsonapi.Unmarshal(recPatch.Body.Bytes(), backend))
 		assert.Equal(t, "powerdns", backend.Name)
 		assert.Equal(t, backendResult.ID, backend.ID)
+	}
+}
+
+func TestPatchZoneBackend(t *testing.T) {
+	e := echo.New()
+	e.Binder = &binder.JsonApiBinder{}
+
+	db, err := database.Database()
+	if err != nil {
+		panic(err)
+	}
+
+	routeBackend := &BackendRoute{db: db}
+	c, _ := postTestRequest("/v1/backends", backendPayload, e)
+	err = routeBackend.Create(c)
+	assert.NoError(t, err)
+
+	routeZone := &ZoneRoute{db: db}
+	c, _ = postTestRequest("/v1/zones", backendZonePayload, e)
+	err = routeZone.Create(c)
+	assert.NoError(t, err)
+
+	c, recPatch := patchTestRequest("/v1/backends/:id/zones", backendZonePatchPayload, e)
+	c.SetParamNames("id")
+	c.SetParamValues(backendResult.ID)
+	if assert.NoError(t, routeBackend.UpdateZone(c)) {
+		assert.Equal(t, http.StatusOK, recPatch.Code)
+		var zones []model.Zone
+		assert.Equal(t, binder.MIMEApplicationJSONApi, recPatch.Header().Get(echo.HeaderContentType))
+		assert.NoError(t, jsonapi.Unmarshal(recPatch.Body.Bytes(), &zones))
+		assert.Equal(t, 1, len(zones))
+		assert.Equal(t, backendZoneResult.Name, zones[0].Name)
+		assert.Equal(t, backendZoneResult.ID, zones[0].ID)
+	}
+}
+
+func TestPostZoneBackend(t *testing.T) {
+	e := echo.New()
+	e.Binder = &binder.JsonApiBinder{}
+
+	db, err := database.Database()
+	if err != nil {
+		panic(err)
+	}
+
+	routeBackend := &BackendRoute{db: db}
+	c, _ := postTestRequest("/v1/backends", backendPayload, e)
+	err = routeBackend.Create(c)
+	assert.NoError(t, err)
+
+	routeZone := &ZoneRoute{db: db}
+	c, _ = postTestRequest("/v1/zones", backendZonePayload, e)
+	err = routeZone.Create(c)
+	assert.NoError(t, err)
+
+	c, recPost := postTestRequest("/v1/backends/:id/zones", backendZonePostPayload, e)
+	c.SetParamNames("id")
+	c.SetParamValues(backendResult.ID)
+	if assert.NoError(t, routeBackend.AddZone(c)) {
+		assert.Equal(t, http.StatusOK, recPost.Code)
+		var zone model.Zone
+		assert.Equal(t, binder.MIMEApplicationJSONApi, recPost.Header().Get(echo.HeaderContentType))
+		assert.NoError(t, jsonapi.Unmarshal(recPost.Body.Bytes(), &zone))
+		assert.Equal(t, backendZoneResult.Name, zone.Name)
+		assert.Equal(t, backendZoneResult.ID, zone.ID)
 	}
 }

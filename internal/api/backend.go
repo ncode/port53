@@ -144,12 +144,12 @@ func (r *BackendRoute) AddZone(c echo.Context) (err error) {
 	if zone.ID == "" {
 		return c.String(http.StatusBadRequest, "Zone ID is required")
 	}
-	backend.Zones = append(backend.Zones, &zone)
-	err = r.db.Model(&backend).Association("Zones").Append(zone)
+	err = r.db.Model(&backend).Association("Zones").Append(&zone)
 	if err != nil {
 		return err
 	}
-	marshal, err := jsonapi.Marshal(backend)
+	r.db.Find(&zone, "id = ?", zone.ID)
+	marshal, err := jsonapi.Marshal(zone)
 	if err != nil {
 		return err
 	}
@@ -169,7 +169,7 @@ func (r *BackendRoute) RemoveZone(c echo.Context) (err error) {
 	if zone.ID == "" {
 		return c.String(http.StatusBadRequest, "Zone ID is required")
 	}
-	err = r.db.Model(&backend).Association("Zones").Delete(zone)
+	err = r.db.Model(&backend).Association("Zones").Delete(&zone)
 	if err != nil {
 		return err
 	}
@@ -197,11 +197,12 @@ func (r *BackendRoute) UpdateZone(c echo.Context) (err error) {
 	if err != nil {
 		return err
 	}
-	var links []jsonapi.MarshalOption
+	var ids []string
 	for _, zone := range zones {
-		links = append(links, jsonapi.MarshalLinks(zone.Link()))
+		ids = append(ids, zone.ID)
 	}
-	marshal, err := jsonapi.Marshal(zones, links...)
+	r.db.Find(&zones, "id IN (?)", ids)
+	marshal, err := jsonapi.Marshal(zones)
 	if err != nil {
 		return err
 	}
