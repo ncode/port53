@@ -74,23 +74,43 @@ func TestCreateBackend(t *testing.T) {
 			routeBackend := &BackendRoute{db: db}
 			c, rec := postTestRequest("/v1/backends", test.input, e)
 			err = routeBackend.Create(c)
-			assert.NoError(t, err)
-			assert.Equal(t, test.expected, rec.Code)
-			if test.expectedData != nil {
-				assert.Equal(t, binder.MIMEApplicationJSONApi, rec.Header().Get(echo.HeaderContentType))
-				backend := &model.Backend{}
-				assert.NoError(t, jsonapi.Unmarshal(rec.Body.Bytes(), backend))
-				assert.Equal(t, test.expectedData.Name, backend.Name)
-				assert.Equal(t, test.expectedData.ID, backend.ID)
-			}
-			if test.expectedLocationHeader != "" {
-				assert.Equal(t, test.expectedLocationHeader, rec.Header().Get(echo.HeaderLocation))
+			if assert.NoError(t, err) {
+				assert.Equal(t, test.expected, rec.Code)
+				if test.expectedData != nil {
+					assert.Equal(t, binder.MIMEApplicationJSONApi, rec.Header().Get(echo.HeaderContentType))
+					backend := &model.Backend{}
+					assert.NoError(t, jsonapi.Unmarshal(rec.Body.Bytes(), backend))
+					assert.Equal(t, test.expectedData.Name, backend.Name)
+					assert.Equal(t, test.expectedData.ID, backend.ID)
+				}
+				if test.expectedLocationHeader != "" {
+					assert.Equal(t, test.expectedLocationHeader, rec.Header().Get(echo.HeaderLocation))
+				}
 			}
 		})
 	}
 }
 
 func TestGetBackend(t *testing.T) {
+	tests := []struct {
+		name         string
+		input        string
+		expectedData *model.Backend
+		expected     int
+	}{
+		{
+			name:         "valid input",
+			input:        `{"data": {"id":"01F1ZQZJXQXZJXZJXZJXZJXZJX", "type": "backends", "attributes": {"name": "bind"}}}`,
+			expectedData: &model.Backend{ID: "01F1ZQZJXQXZJXZJXZJXZJXZJX", Name: "bind"},
+			expected:     http.StatusCreated,
+		},
+		{
+			name:     "invalid input",
+			input:    `{"data": {"type": "backends", "attributes": {"name": "bind"}}}`,
+			expected: http.StatusNotFound,
+		},
+	}
+
 	e := echo.New()
 	e.Binder = &binder.JsonApiBinder{}
 
@@ -99,21 +119,27 @@ func TestGetBackend(t *testing.T) {
 		panic(err)
 	}
 
-	routeBackend := &BackendRoute{db: db}
-	c, _ := postTestRequest("/v1/backends", backendPayload, e)
-	err = routeBackend.Create(c)
-	assert.NoError(t, err)
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			routeBackend := &BackendRoute{db: db}
+			c, _ := postTestRequest("/v1/backends", test.input, e)
+			err = routeBackend.Create(c)
+			assert.NoError(t, err)
 
-	c, recGet := getTestRequest("/v1/backends/:id", e)
-	c.SetParamNames("id")
-	c.SetParamValues(backendResult.ID)
-	if assert.NoError(t, routeBackend.Get(c)) {
-		assert.Equal(t, http.StatusOK, recGet.Code)
-		assert.Equal(t, binder.MIMEApplicationJSONApi, recGet.Header().Get(echo.HeaderContentType))
-		backend := &model.Backend{}
-		assert.NoError(t, jsonapi.Unmarshal(recGet.Body.Bytes(), backend))
-		assert.Equal(t, backendResult.Name, backend.Name)
-		assert.Equal(t, backendResult.ID, backend.ID)
+			c, recGet := getTestRequest("/v1/backends/:id", e)
+			c.SetParamNames("id")
+			c.SetParamValues(test.expectedData.ID)
+			if assert.NoError(t, routeBackend.Get(c)) {
+				assert.Equal(t, http.StatusOK, recGet.Code)
+				assert.Equal(t, binder.MIMEApplicationJSONApi, recGet.Header().Get(echo.HeaderContentType))
+				if test.expectedData != nil {
+					backend := &model.Backend{}
+					assert.NoError(t, jsonapi.Unmarshal(recGet.Body.Bytes(), backend))
+					assert.Equal(t, test.expectedData.Name, backend.Name)
+					assert.Equal(t, test.expectedData.ID, backend.ID)
+				}
+			}
+		})
 	}
 }
 
