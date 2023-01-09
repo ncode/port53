@@ -98,10 +98,10 @@ func (r *BackendRoute) Get(c echo.Context) (err error) {
 	var backend model.Backend
 	err = r.db.Preload("Zones").First(&backend, "id = ?", c.Param("id")).Error
 	if err != nil {
+		if err.Error() == "record not found" {
+			return c.String(http.StatusNotFound, "Backend not found")
+		}
 		return err
-	}
-	if backend.ID == "" {
-		return c.String(http.StatusNotFound, "Not found")
 	}
 	if len(backend.Zones) == 0 {
 		backend.Zones = nil
@@ -115,7 +115,7 @@ func (r *BackendRoute) Get(c echo.Context) (err error) {
 
 func (r *BackendRoute) Delete(c echo.Context) (err error) {
 	err = r.db.Where("id = ?", c.Param("id")).Delete(&model.Backend{}).Error
-	if err != nil {
+	if err != nil && err.Error() != "record not found" {
 		return err
 	}
 	return c.NoContent(http.StatusNoContent)

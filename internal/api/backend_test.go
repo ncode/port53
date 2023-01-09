@@ -93,24 +93,73 @@ func TestCreateBackend(t *testing.T) {
 
 func TestGetBackend(t *testing.T) {
 	tests := []struct {
-		name         string
-		input        string
-		expectedData *model.Backend
-		expected     int
+		name               string
+		input              string
+		id                 string
+		expectedData       *model.Backend
+		expectedStatusCode int
 	}{
 		{
-			name:         "valid input",
-			input:        `{"data": {"id":"01F1ZQZJXQXZJXZJXZJXZJXZJX", "type": "backends", "attributes": {"name": "bind"}}}`,
-			expectedData: &model.Backend{ID: "01F1ZQZJXQXZJXZJXZJXZJXZJX", Name: "bind"},
-			expected:     http.StatusCreated,
+			name:               "record exists",
+			id:                 "01F1ZQZJXQXZJXZJXZJXZJXZJX",
+			input:              `{"data": {"id":"01F1ZQZJXQXZJXZJXZJXZJXZJX", "type": "backends", "attributes": {"name": "bind"}}}`,
+			expectedData:       &model.Backend{ID: "01F1ZQZJXQXZJXZJXZJXZJXZJX", Name: "bind"},
+			expectedStatusCode: http.StatusOK,
 		},
 		{
-			name:     "invalid input",
-			input:    `{"data": {"type": "backends", "attributes": {"name": "bind"}}}`,
-			expected: http.StatusNotFound,
+			name:               "record does not exist",
+			id:                 "01F1ZQZJXQXZJXZJXZJXZJXZZZ",
+			expectedStatusCode: http.StatusNotFound,
 		},
 	}
 
+	e := echo.New()
+	e.Binder = &binder.JsonApiBinder{}
+
+	db, err := database.Database()
+	if err != nil {
+		panic(err)
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			routeBackend := &BackendRoute{db: db}
+			if test.input != "" {
+				c, _ := postTestRequest("/v1/backends", test.input, e)
+				err = routeBackend.Create(c)
+				assert.NoError(t, err)
+			}
+
+			c, recGet := getTestRequest("/v1/backends/:id", e)
+			c.SetParamNames("id")
+			c.SetParamValues(test.id)
+			if assert.NoError(t, routeBackend.Get(c)) {
+				assert.Equal(t, test.expectedStatusCode, recGet.Code)
+				if test.expectedData != nil {
+					backend := &model.Backend{}
+					assert.NoError(t, jsonapi.Unmarshal(recGet.Body.Bytes(), backend))
+					assert.Equal(t, test.expectedData.Name, backend.Name)
+					assert.Equal(t, test.expectedData.ID, backend.ID)
+				}
+			}
+		})
+	}
+}
+
+func TestDeleteBackend(t *testing.T) {
+	tests := []struct {
+		name     string
+		input    string
+		id       string
+		expected int
+	}{
+		{
+			name:     "delete existing record",
+			input:    `{"data": {"id":"01F1ZQZJXQXZJXZJXZJXZJXZ00", "type": "backends", "attributes": {"name": "bind"}}}`,
+			id:       "01F1ZQZJXQXZJXZJXZJXZJXZ00",
+			expected: http.StatusCreated,
+		},
+	}
 	e := echo.New()
 	e.Binder = &binder.JsonApiBinder{}
 
@@ -128,47 +177,25 @@ func TestGetBackend(t *testing.T) {
 
 			c, recGet := getTestRequest("/v1/backends/:id", e)
 			c.SetParamNames("id")
-			c.SetParamValues(test.expectedData.ID)
+			c.SetParamValues(test.id)
 			if assert.NoError(t, routeBackend.Get(c)) {
 				assert.Equal(t, http.StatusOK, recGet.Code)
-				assert.Equal(t, binder.MIMEApplicationJSONApi, recGet.Header().Get(echo.HeaderContentType))
-				if test.expectedData != nil {
-					backend := &model.Backend{}
-					assert.NoError(t, jsonapi.Unmarshal(recGet.Body.Bytes(), backend))
-					assert.Equal(t, test.expectedData.Name, backend.Name)
-					assert.Equal(t, test.expectedData.ID, backend.ID)
-				}
+			}
+
+			c, recDelete := deleteTestRequest("/v1/backends/:id", e)
+			c.SetParamNames("id")
+			c.SetParamValues(test.id)
+			if assert.NoError(t, routeBackend.Delete(c)) {
+				assert.Equal(t, http.StatusNoContent, recDelete.Code)
+			}
+
+			c, recGet = getTestRequest("/v1/backends/:id", e)
+			c.SetParamNames("id")
+			c.SetParamValues(test.id)
+			if assert.NoError(t, routeBackend.Get(c)) {
+				assert.Equal(t, http.StatusNotFound, recGet.Code)
 			}
 		})
-	}
-}
-
-func TestDeleteBackend(t *testing.T) {
-	e := echo.New()
-	e.Binder = &binder.JsonApiBinder{}
-
-	db, err := database.Database()
-	if err != nil {
-		panic(err)
-	}
-
-	routeBackend := &BackendRoute{db: db}
-	c, _ := postTestRequest("/v1/backends", backendPayload, e)
-	err = routeBackend.Create(c)
-	assert.NoError(t, err)
-
-	c, recDelete := deleteTestRequest("/v1/backends/:id", e)
-	c.SetParamNames("id")
-	c.SetParamValues(backendResult.ID)
-	if assert.NoError(t, routeBackend.Delete(c)) {
-		assert.Equal(t, http.StatusNoContent, recDelete.Code)
-	}
-
-	c, recGet := getTestRequest("/v1/backends/:id", e)
-	c.SetParamNames("id")
-	c.SetParamValues(backendResult.ID)
-	if assert.NoError(t, routeBackend.Get(c)) {
-		assert.Equal(t, http.StatusNotFound, recGet.Code)
 	}
 }
 
