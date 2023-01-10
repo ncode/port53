@@ -20,12 +20,11 @@ func init() {
 }
 
 var (
-	backendResult           = &model.Backend{ID: "01F1ZQZJXQXZJXZJXZJXZJXZJX", Name: "bind"}
-	backendPayload          = `{"data":{"id":"01F1ZQZJXQXZJXZJXZJXZJXZJX","type":"backends","attributes":{"name":"bind"}}}`
-	backendZoneResult       = &model.Zone{ID: "01GP0JQGFM61EKSCDGRDZ6H6QX", Name: "martinez.io"}
-	backendZonePayload      = `{"data":{"id":"01GP0JQGFM61EKSCDGRDZ6H6QX","type":"zones","attributes":{"expire":604800,"minimum":3600,"mname":"@","name":"martinez.io","refresh":3600,"retry":600,"rname":"admin","serial":1,"ttl":3600}}}`
-	backendZonePatchPayload = `{"data":[{"id":"01GP0JQGFM61EKSCDGRDZ6H6QX", "type":"zones"}]}`
-	backendZonePostPayload  = `{"data":{"id":"01GP0JQGFM61EKSCDGRDZ6H6QX", "type":"zones"}}`
+	backendResult          = &model.Backend{ID: "01F1ZQZJXQXZJXZJXZJXZJXZJX", Name: "bind"}
+	backendPayload         = `{"data":{"id":"01F1ZQZJXQXZJXZJXZJXZJXZJX","type":"backends","attributes":{"name":"bind"}}}`
+	backendZoneResult      = &model.Zone{ID: "01GP0JQGFM61EKSCDGRDZ6H6QX", Name: "martinez.io"}
+	backendZonePayload     = `{"data":{"id":"01GP0JQGFM61EKSCDGRDZ6H6QX","type":"zones","attributes":{"expire":604800,"minimum":3600,"mname":"@","name":"martinez.io","refresh":3600,"retry":600,"rname":"admin","serial":1,"ttl":3600}}}`
+	backendZonePostPayload = `{"data":{"id":"01GP0JQGFM61EKSCDGRDZ6H6QX", "type":"zones"}}`
 )
 
 func TestCreateBackend(t *testing.T) {
@@ -34,30 +33,30 @@ func TestCreateBackend(t *testing.T) {
 		input                  string
 		expectedData           *model.Backend
 		expectedLocationHeader string
-		expected               int
+		expectedStatusCode     int
 	}{
 		{
-			name:         "valid input",
-			input:        `{"data": {"id":"01F1ZQZJXQXZJXZJXZJXZJXZJX", "type": "backends", "attributes": {"name": "bind"}}}`,
-			expectedData: &model.Backend{ID: "01F1ZQZJXQXZJXZJXZJXZJXZJX", Name: "bind"},
-			expected:     http.StatusCreated,
+			name:               "valid input",
+			input:              `{"data": {"id":"01F1ZQZJXQXZJXZJXZJXZJXZJX", "type": "backends", "attributes": {"name": "bind"}}}`,
+			expectedData:       &model.Backend{ID: "01F1ZQZJXQXZJXZJXZJXZJXZJX", Name: "bind"},
+			expectedStatusCode: http.StatusCreated,
 		},
 		{
-			name:     "invalid input",
-			input:    `{"data": {"type": "backends", "attributes": {"name": ""}}}`,
-			expected: http.StatusBadRequest,
+			name:               "invalid input",
+			input:              `{"data": {"type": "backends", "attributes": {"name": ""}}}`,
+			expectedStatusCode: http.StatusBadRequest,
 		},
 		{
 			name:                   "id conflict",
 			input:                  `{"data": {"id":"01F1ZQZJXQXZJXZJXZJXZJXZJX", "type": "backends", "attributes": {"name": "pdns"}}}`,
 			expectedLocationHeader: fmt.Sprintf("%s/v1/backends/%s", viper.GetString("serviceUrl"), backendResult.ID),
-			expected:               http.StatusConflict,
+			expectedStatusCode:     http.StatusConflict,
 		},
 		{
 			name:                   "name conflict",
 			input:                  `{"data": {"type": "backends", "attributes": {"name": "bind"}}}`,
 			expectedLocationHeader: fmt.Sprintf("%s/v1/backends/%s", viper.GetString("serviceUrl"), backendResult.ID),
-			expected:               http.StatusConflict,
+			expectedStatusCode:     http.StatusConflict,
 		},
 	}
 
@@ -75,7 +74,7 @@ func TestCreateBackend(t *testing.T) {
 			c, rec := postTestRequest("/v1/backends", test.input, e)
 			err = routeBackend.Create(c)
 			if assert.NoError(t, err) {
-				assert.Equal(t, test.expected, rec.Code)
+				assert.Equal(t, test.expectedStatusCode, rec.Code)
 				if test.expectedData != nil {
 					assert.Equal(t, binder.MIMEApplicationJSONApi, rec.Header().Get(echo.HeaderContentType))
 					backend := &model.Backend{}
@@ -221,7 +220,52 @@ func TestPatchBackendNameEmpty(t *testing.T) {
 	}
 }
 
-func TestPatchBackend(t *testing.T) {
+func TestBackendZone(t *testing.T) {
+	tests := []struct {
+		name               string
+		input              string
+		zoneInput          string
+		payload            string
+		id                 string
+		zoneID             string
+		expectedData       *model.Zone
+		expectedStatusCode int
+	}{
+		{
+			name:               "valid input",
+			input:              `{"data": {"id":"01F1ZQZJXQXZJXZJXZJXZJXZJX", "type": "backends", "attributes": {"name": "bind"}}}`,
+			zoneInput:          `{"data": {"id":"01F1ZQZJXQXZJXZJXZJXZJZONE", "type": "zones", "attributes": {"name": "martinez.io"}}}`,
+			payload:            `{"data": [{"id":"01F1ZQZJXQXZJXZJXZJXZJZONE", "type": "zones"}]}`,
+			id:                 "01F1ZQZJXQXZJXZJXZJXZJXZJX",
+			zoneID:             "01F1ZQZJXQXZJXZJXZJXZJZONE",
+			expectedData:       &model.Zone{ID: "01F1ZQZJXQXZJXZJXZJXZJXZJX", Name: "martinez.io"},
+			expectedStatusCode: http.StatusOK,
+		},
+		{
+			name:               "invalid input",
+			input:              `{"data": {"id":"01F1ZQZJXQXZJXZJXZJXZJXZJX", "type": "backends", "attributes": {"name": "bind"}}}`,
+			zoneInput:          `{"data": {"id":"01F1ZQZJXQXZJXZJXZJXZJZONE", "type": "zones", "attributes": {"name": "martinez.io"}}}`,
+			payload:            `{"data": [{"type": "zones"}]}`,
+			id:                 "01F1ZQZJXQXZJXZJXZJXZJXZJX",
+			expectedStatusCode: http.StatusBadRequest,
+		},
+		{
+			name:               "nonexistent zone",
+			input:              `{"data": {"id":"01F1ZQZJXQXZJXZJXZJXZJXZJX", "type": "backends", "attributes": {"name": "bind"}}}`,
+			zoneInput:          `{"data": {"id":"01F1ZQZJXQXZJXZJXZJXZJZONE", "type": "zones", "attributes": {"name": "martinez.io"}}}`,
+			payload:            `{"data": [{"id":"01F1ZQZJXQXZJXZJXZJXZJLALA", "type": "zones"}]}`,
+			id:                 "01F1ZQZJXQXZJXZJXZJXZJXZJX",
+			expectedStatusCode: http.StatusNotFound,
+		},
+		{
+			name:               "remove zones from backend",
+			input:              `{"data": {"id":"01F1ZQZJXQXZJXZJXZJXZJXZJX", "type": "backends", "attributes": {"name": "bind"}}}`,
+			zoneInput:          `{"data": {"id":"01F1ZQZJXQXZJXZJXZJXZJZONE", "type": "zones", "attributes": {"name": "martinez.io"}}}`,
+			payload:            `{"data": []}`,
+			id:                 "01F1ZQZJXQXZJXZJXZJXZJXZJX",
+			expectedStatusCode: http.StatusNoContent,
+		},
+	}
 	e := echo.New()
 	e.Binder = &binder.JsonApiBinder{}
 
@@ -230,55 +274,33 @@ func TestPatchBackend(t *testing.T) {
 		panic(err)
 	}
 
-	routeBackend := &BackendRoute{db: db}
-	c, _ := postTestRequest("/v1/backends", backendPayload, e)
-	err = routeBackend.Create(c)
-	assert.NoError(t, err)
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			routeBackend := &BackendRoute{db: db}
+			c, _ := postTestRequest("/v1/backends", test.input, e)
+			err = routeBackend.Create(c)
+			assert.NoError(t, err)
 
-	c, recPatch := patchTestRequest("/v1/backends/:id", strings.Replace(backendPayload, "bind", "powerdns", -1), e)
-	c.SetParamNames("id")
-	c.SetParamValues(backendResult.ID)
-	if assert.NoError(t, routeBackend.Update(c)) {
-		assert.Equal(t, http.StatusOK, recPatch.Code)
-		backend := &model.Backend{}
-		assert.Equal(t, binder.MIMEApplicationJSONApi, recPatch.Header().Get(echo.HeaderContentType))
-		assert.NoError(t, jsonapi.Unmarshal(recPatch.Body.Bytes(), backend))
-		assert.Equal(t, "powerdns", backend.Name)
-		assert.Equal(t, backendResult.ID, backend.ID)
+			routeZone := &ZoneRoute{db: db}
+			c, _ = postTestRequest("/v1/zones", test.zoneInput, e)
+			err = routeZone.Create(c)
+			assert.NoError(t, err)
+
+			c, recPatch := patchTestRequest("/v1/backends/:id/zones", test.payload, e)
+			c.SetParamNames("id")
+			c.SetParamValues(test.id)
+			if assert.NoError(t, routeBackend.UpdateZone(c)) {
+				assert.Equal(t, test.expectedStatusCode, recPatch.Code)
+				if test.zoneID != "" {
+					var zones []model.Zone
+					assert.NoError(t, jsonapi.Unmarshal(recPatch.Body.Bytes(), &zones))
+					assert.Equal(t, test.zoneID, zones[0].ID)
+				}
+
+			}
+		})
 	}
-}
 
-func TestPatchZoneBackend(t *testing.T) {
-	e := echo.New()
-	e.Binder = &binder.JsonApiBinder{}
-
-	db, err := database.Database()
-	if err != nil {
-		panic(err)
-	}
-
-	routeBackend := &BackendRoute{db: db}
-	c, _ := postTestRequest("/v1/backends", backendPayload, e)
-	err = routeBackend.Create(c)
-	assert.NoError(t, err)
-
-	routeZone := &ZoneRoute{db: db}
-	c, _ = postTestRequest("/v1/zones", backendZonePayload, e)
-	err = routeZone.Create(c)
-	assert.NoError(t, err)
-
-	c, recPatch := patchTestRequest("/v1/backends/:id/zones", backendZonePatchPayload, e)
-	c.SetParamNames("id")
-	c.SetParamValues(backendResult.ID)
-	if assert.NoError(t, routeBackend.UpdateZone(c)) {
-		assert.Equal(t, http.StatusOK, recPatch.Code)
-		var zones []model.Zone
-		assert.Equal(t, binder.MIMEApplicationJSONApi, recPatch.Header().Get(echo.HeaderContentType))
-		assert.NoError(t, jsonapi.Unmarshal(recPatch.Body.Bytes(), &zones))
-		assert.Equal(t, 1, len(zones))
-		assert.Equal(t, backendZoneResult.Name, zones[0].Name)
-		assert.Equal(t, backendZoneResult.ID, zones[0].ID)
-	}
 }
 
 func TestPostZoneBackend(t *testing.T) {

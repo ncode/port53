@@ -1,8 +1,11 @@
 package api
 
 import (
+	"bytes"
 	"fmt"
+	"io"
 	"net/http"
+	"strings"
 
 	"github.com/DataDog/jsonapi"
 	"github.com/ncode/port53/pkg/binder"
@@ -182,27 +185,49 @@ func (r *BackendRoute) RemoveZone(c echo.Context) (err error) {
 
 func (r *BackendRoute) UpdateZone(c echo.Context) (err error) {
 	var backend model.Backend
-	r.db.Preload("Zones").First(&backend, "id = ?", c.Param("id"))
+	err = r.db.First(&backend, "id = ?", c.Param("id")).Error
+	if err != nil {
+		return err
+	}
 	if backend.ID == "" {
 		return c.String(http.StatusNotFound, "Backend not found")
 	}
 	var zones []model.Zone
 	if err := c.Bind(&zones); err != nil {
-		return err
-	}
-	if len(zones) == 0 {
-		return c.String(http.StatusBadRequest, "Zone ID is required")
-	}
-	err = r.db.Model(&backend).Association("Zones").Replace(zones)
-	if err != nil {
+		if strings.Contains(err.Error(), "body is not a json:api representation") {
+			if body, err := io.ReadAll(c.Request().Body); err == nil {
+				// This feel like a bug. Not 100% sure yet.
+				if bytes.Equal(body, []byte("")) {
+					err = r.db.Model(&backend).Association("Zones").Clear()
+					if err != nil {
+						return err
+					}
+					return c.String(http.StatusNoContent, "Removed all zones from backend")
+				}
+			}
+		}
 		return err
 	}
 	var ids []string
 	for _, zone := range zones {
 		ids = append(ids, zone.ID)
+		if zone.ID == "" {
+			return c.String(http.StatusBadRequest, "Zone ID is required")
+		}
 	}
-	r.db.Find(&zones, "id IN (?)", ids)
-	marshal, err := jsonapi.Marshal(zones)
+	existingZones := make([]model.Zone, 0)
+	err = r.db.Find(&existingZones, "id IN (?)", ids).Error
+	if err != nil {
+		return err
+	}
+	if len(existingZones) == 0 || len(existingZones) != len(zones) {
+		return c.String(http.StatusNotFound, "All zones must exist")
+	}
+	marshal, err := jsonapi.Marshal(existingZones)
+	if err != nil {
+		return err
+	}
+	err = r.db.Model(&backend).Association("Zones").Replace(existingZones)
 	if err != nil {
 		return err
 	}
