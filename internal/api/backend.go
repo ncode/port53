@@ -187,6 +187,9 @@ func (r *BackendRoute) RemoveZone(c echo.Context) (err error) {
 	}
 	var zone model.Zone
 	if err := c.Bind(&zone); err != nil {
+		if strings.Contains(err.Error(), "body is not a json:api representation") {
+			return c.String(http.StatusBadRequest, "Zone ID is required")
+		}
 		return err
 	}
 	if zone.ID == "" {
