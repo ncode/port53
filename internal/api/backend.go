@@ -125,9 +125,18 @@ func (r *BackendRoute) Delete(c echo.Context) (err error) {
 }
 
 func (r *BackendRoute) GetZone(c echo.Context) (err error) {
-	var zones []model.Zone
-	r.db.Model(&zones).Where("backend_id = ?", c.Param("id")).Preload("Backend").Find(&zones)
-	marshal, err := jsonapi.Marshal(zones)
+	var backend model.Backend
+	err = r.db.Preload("Zones").First(&backend, "id = ?", c.Param("id")).Error
+	if err != nil {
+		if err.Error() == "record not found" {
+			return c.String(http.StatusNotFound, "Backend not found")
+		}
+		return err
+	}
+	if len(backend.Zones) == 0 {
+		return c.String(http.StatusNotFound, "Backend doesn't have any zones")
+	}
+	marshal, err := jsonapi.Marshal(backend.Zones)
 	if err != nil {
 		return err
 	}
@@ -136,16 +145,27 @@ func (r *BackendRoute) GetZone(c echo.Context) (err error) {
 
 func (r *BackendRoute) AddZone(c echo.Context) (err error) {
 	var backend model.Backend
-	r.db.Preload("Zones").First(&backend, "id = ?", c.Param("id"))
+	r.db.First(&backend, "id = ?", c.Param("id"))
 	if backend.ID == "" {
 		return c.String(http.StatusNotFound, "Backend not found")
 	}
 	var zone model.Zone
 	if err := c.Bind(&zone); err != nil {
+		if strings.Contains(err.Error(), "body is not a json:api representation") {
+			return c.String(http.StatusBadRequest, "Zone ID is required")
+		}
 		return err
 	}
 	if zone.ID == "" {
 		return c.String(http.StatusBadRequest, "Zone ID is required")
+	}
+	var existingZone model.Zone
+	err = r.db.Find(&existingZone, "id = ?", zone.ID).Error
+	if err != nil {
+		return err
+	}
+	if existingZone.ID == "" {
+		return c.String(http.StatusNotFound, "Zone not found")
 	}
 	err = r.db.Model(&backend).Association("Zones").Append(&zone)
 	if err != nil {
@@ -176,7 +196,15 @@ func (r *BackendRoute) RemoveZone(c echo.Context) (err error) {
 	if err != nil {
 		return err
 	}
-	marshal, err := jsonapi.Marshal(backend)
+	var existingBackend model.Backend
+	err = r.db.Preload("Zones").First(&existingBackend, "id = ?", c.Param("id")).Error
+	if err != nil {
+		return err
+	}
+	if len(backend.Zones) == 0 {
+		return c.String(http.StatusNoContent, "Backend doesn't have any zones")
+	}
+	marshal, err := jsonapi.Marshal(backend.Zones)
 	if err != nil {
 		return err
 	}

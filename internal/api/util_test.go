@@ -16,8 +16,13 @@ func getTestRequest(target string, e *echo.Echo) (c echo.Context, recGet *httpte
 	return e.NewContext(get, recGet), recGet
 }
 
-func deleteTestRequest(target string, e *echo.Echo) (c echo.Context, recDelete *httptest.ResponseRecorder) {
-	del := httptest.NewRequest(http.MethodDelete, target, nil)
+func deleteTestRequest(target string, payload string, e *echo.Echo) (c echo.Context, recDelete *httptest.ResponseRecorder) {
+	var del *http.Request
+	if payload != "" {
+		del = httptest.NewRequest(http.MethodDelete, target, strings.NewReader(payload))
+	} else {
+		del = httptest.NewRequest(http.MethodDelete, target, nil)
+	}
 	del.Header.Set(echo.HeaderContentType, binder.MIMEApplicationJSONApi)
 	recDelete = httptest.NewRecorder()
 	return e.NewContext(del, recDelete), recDelete
