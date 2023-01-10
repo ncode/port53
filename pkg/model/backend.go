@@ -40,3 +40,44 @@ func (b *Backend) BeforeCreate(tx *gorm.DB) (err error) {
 	}
 	return err
 }
+
+func (b *Backend) Get(db *gorm.DB, preload bool) (err error) {
+	if preload {
+		return db.Preload("Zones").First(b, "id = ?", b.ID).Error
+	}
+	return db.First(b, "id = ?", b.ID).Error
+}
+
+func (b *Backend) AddZone(db *gorm.DB, zone *Zone) (err error) {
+	return db.Transaction(func(tx *gorm.DB) error {
+		err = tx.Model(b).Association("Zones").Append(zone)
+		if err != nil {
+			return err
+		}
+		return nil
+	})
+}
+
+func (b *Backend) RemoveZone(db *gorm.DB, zone *Zone) (err error) {
+	return db.Transaction(func(tx *gorm.DB) error {
+		err = tx.Model(b).Association("Zones").Delete(zone)
+		if err != nil {
+			return err
+		}
+		return nil
+	})
+}
+
+func (b *Backend) ReplaceZones(db *gorm.DB, zones []*Zone) (err error) {
+	return db.Transaction(func(tx *gorm.DB) error {
+		err = tx.Model(b).Association("Zones").Replace(zones)
+		if err != nil {
+			return err
+		}
+		return nil
+	})
+}
+
+func (b *Backend) Delete(db *gorm.DB) (err error) {
+	return db.Delete(&b).Error
+}

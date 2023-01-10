@@ -49,3 +49,10 @@ func (z *Zone) BeforeCreate(tx *gorm.DB) (err error) {
 	}
 	return err
 }
+
+func (z *Zone) Get(db *gorm.DB, preload bool) (err error) {
+	if preload {
+		return db.Preload("Records").Preload("Backends").First(z, "id = ?", z.ID).Error
+	}
+	return db.First(z, "id = ?", z.ID).Error
+}

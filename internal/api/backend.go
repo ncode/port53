@@ -98,8 +98,8 @@ func (r *BackendRoute) Update(c echo.Context) (err error) {
 }
 
 func (r *BackendRoute) Get(c echo.Context) (err error) {
-	var backend model.Backend
-	err = r.db.Preload("Zones").First(&backend, "id = ?", c.Param("id")).Error
+	backend := &model.Backend{ID: c.Param("id")}
+	err = backend.Get(r.db, true)
 	if err != nil {
 		if err.Error() == "record not found" {
 			return c.String(http.StatusNotFound, "Backend not found")
@@ -117,7 +117,8 @@ func (r *BackendRoute) Get(c echo.Context) (err error) {
 }
 
 func (r *BackendRoute) Delete(c echo.Context) (err error) {
-	err = r.db.Where("id = ?", c.Param("id")).Delete(&model.Backend{}).Error
+	backend := &model.Backend{ID: c.Param("id")}
+	err = backend.Delete(r.db)
 	if err != nil && err.Error() != "record not found" {
 		return err
 	}
@@ -125,8 +126,8 @@ func (r *BackendRoute) Delete(c echo.Context) (err error) {
 }
 
 func (r *BackendRoute) GetZone(c echo.Context) (err error) {
-	var backend model.Backend
-	err = r.db.Preload("Zones").First(&backend, "id = ?", c.Param("id")).Error
+	backend := &model.Backend{ID: c.Param("id")}
+	err = backend.Get(r.db, true)
 	if err != nil {
 		if err.Error() == "record not found" {
 			return c.String(http.StatusNotFound, "Backend not found")
@@ -144,8 +145,14 @@ func (r *BackendRoute) GetZone(c echo.Context) (err error) {
 }
 
 func (r *BackendRoute) AddZone(c echo.Context) (err error) {
-	var backend model.Backend
-	r.db.First(&backend, "id = ?", c.Param("id"))
+	backend := &model.Backend{ID: c.Param("id")}
+	err = backend.Get(r.db, false)
+	if err != nil {
+		if err.Error() == "record not found" {
+			return c.String(http.StatusNotFound, "Backend not found")
+		}
+		return err
+	}
 	if backend.ID == "" {
 		return c.String(http.StatusNotFound, "Backend not found")
 	}
@@ -159,15 +166,15 @@ func (r *BackendRoute) AddZone(c echo.Context) (err error) {
 	if zone.ID == "" {
 		return c.String(http.StatusBadRequest, "Zone ID is required")
 	}
-	var existingZone model.Zone
-	err = r.db.Find(&existingZone, "id = ?", zone.ID).Error
+	existingZone := model.Zone{ID: zone.ID}
+	err = existingZone.Get(r.db, false)
 	if err != nil {
 		return err
 	}
 	if existingZone.ID == "" {
 		return c.String(http.StatusNotFound, "Zone not found")
 	}
-	err = r.db.Model(&backend).Association("Zones").Append(&zone)
+	err = backend.AddZone(r.db, &existingZone)
 	if err != nil {
 		return err
 	}
