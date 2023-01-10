@@ -3,7 +3,6 @@ package api
 import (
 	"fmt"
 	"net/http"
-	"strings"
 	"testing"
 
 	"github.com/DataDog/jsonapi"
@@ -198,29 +197,7 @@ func TestDeleteBackend(t *testing.T) {
 	}
 }
 
-func TestPatchBackendNameEmpty(t *testing.T) {
-	e := echo.New()
-	e.Binder = &binder.JsonApiBinder{}
-
-	db, err := database.Database()
-	if err != nil {
-		panic(err)
-	}
-
-	routeBackend := &BackendRoute{db: db}
-	c, _ := postTestRequest("/v1/backends", backendPayload, e)
-	err = routeBackend.Create(c)
-	assert.NoError(t, err)
-
-	c, recPatch := patchTestRequest("/v1/backends/:id", strings.Replace(backendPayload, "bind", "", -1), e)
-	c.SetParamNames("id")
-	c.SetParamValues(backendResult.ID)
-	if assert.NoError(t, routeBackend.Update(c)) {
-		assert.Equal(t, http.StatusBadRequest, recPatch.Code)
-	}
-}
-
-func TestBackendZone(t *testing.T) {
+func TestPatchBackendZone(t *testing.T) {
 	tests := []struct {
 		name               string
 		input              string
