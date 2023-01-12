@@ -39,26 +39,15 @@ func Database() (db *gorm.DB, err error) {
 	return database, err
 }
 
-func CleanupDatabase() (err error) {
-	db, err := gorm.Open(sqlite.Open(viper.GetString("database")), &gorm.Config{})
+func Close() error {
+	if database == nil {
+		return nil
+	}
+
+	sqlDB, err := database.DB()
 	if err != nil {
 		return err
 	}
 
-	db.Exec(`PRAGMA writable_schema = 1;
-delete from sqlite_master where type in ('table', 'index', 'trigger');
-PRAGMA writable_schema = 0;
-VACUUM;
-PRAGMA INTEGRITY_CHECK;`)
-
-	sqlDB, err := db.DB()
-	if err != nil {
-		return err
-	}
-	err = sqlDB.Close()
-	if err != nil {
-		return err
-	}
-
-	return err
+	return sqlDB.Close()
 }
