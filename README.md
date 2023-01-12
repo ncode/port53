@@ -2,7 +2,7 @@
 [![Go Report Card](https://goreportcard.com/badge/github.com/ncode/port53)](https://goreportcard.com/report/github.com/ncode/port53)
 
 # Port53
-Dns something something
+Dns management system
 
 #### Why?
 
@@ -11,4 +11,4 @@ Dns something something
 
 #### Current status of the project
 
-vapourware with an api
+vapourware with an api using jsonapi.org schema
