@@ -18,7 +18,7 @@ func init() {
 	viper.Set("database", "file::memory:?cache=shared")
 }
 
-func TestCreateBackend(t *testing.T) {
+func TestBackendRoute_Create(t *testing.T) {
 	tests := []struct {
 		name                   string
 		input                  string
@@ -81,7 +81,7 @@ func TestCreateBackend(t *testing.T) {
 	}
 }
 
-func TestGetBackend(t *testing.T) {
+func TestBackendRoute_Get(t *testing.T) {
 	tests := []struct {
 		name               string
 		input              string
@@ -136,7 +136,7 @@ func TestGetBackend(t *testing.T) {
 	}
 }
 
-func TestDeleteBackend(t *testing.T) {
+func TestBackendRoute_Delete(t *testing.T) {
 	tests := []struct {
 		name     string
 		input    string
@@ -189,7 +189,7 @@ func TestDeleteBackend(t *testing.T) {
 	}
 }
 
-func TestPatchBackendZone(t *testing.T) {
+func TestBackendRoute_UpdateZone(t *testing.T) {
 	tests := []struct {
 		name               string
 		input              string
@@ -271,7 +271,7 @@ func TestPatchBackendZone(t *testing.T) {
 	}
 }
 
-func TestPostZoneBackend(t *testing.T) {
+func TestBackendRoute_AddZone(t *testing.T) {
 	tests := []struct {
 		name               string
 		input              string
@@ -353,7 +353,7 @@ func TestPostZoneBackend(t *testing.T) {
 	}
 }
 
-func TestDeleteZoneBackend(t *testing.T) {
+func TestBackendRoute_RemoveZone(t *testing.T) {
 	tests := []struct {
 		name               string
 		input              string
@@ -456,7 +456,7 @@ func TestDeleteZoneBackend(t *testing.T) {
 	}
 }
 
-func TestGetZoneBackend(t *testing.T) {
+func TestBackendRoute_GetZone(t *testing.T) {
 	tests := []struct {
 		name               string
 		input              string
