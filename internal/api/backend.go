@@ -168,11 +168,11 @@ func (r *BackendRoute) AddZone(c echo.Context) (err error) {
 	}
 	existingZone := model.Zone{ID: zone.ID}
 	err = existingZone.Get(r.db, false)
-	if err != nil {
+	if err != nil && err.Error() == "record not found" {
+		if err.Error() == "record not found" {
+			return c.String(http.StatusNotFound, "Zone not found")
+		}
 		return err
-	}
-	if existingZone.ID == "" {
-		return c.String(http.StatusNotFound, "Zone not found")
 	}
 	err = backend.AddZone(r.db, &existingZone)
 	if err != nil {

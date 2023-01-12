@@ -18,7 +18,7 @@ func init() {
 	viper.Set("database", "file::memory:?cache=shared")
 }
 
-func TestCreateBackend(t *testing.T) {
+func TestBackendRoute_Create(t *testing.T) {
 	tests := []struct {
 		name                   string
 		input                  string
@@ -46,7 +46,7 @@ func TestCreateBackend(t *testing.T) {
 		{
 			name:                   "name conflict",
 			input:                  `{"data": {"id":"01F1ZQZJXQXZJXZJXZJXZJXX0X", "type": "backends", "attributes": {"name": "bind"}}}`,
-			expectedLocationHeader: fmt.Sprintf("%s/v1/backends/%s", viper.GetString("serviceUrl"), "01F1ZQZJXQXZJXZJXZJXZJXX0X"),
+			expectedLocationHeader: fmt.Sprintf("%s/v1/backends/%s", viper.GetString("serviceUrl"), "01F1ZQZJXQXZJXZJXZJXZJXZJX"),
 			expectedStatusCode:     http.StatusConflict,
 		},
 	}
@@ -81,7 +81,7 @@ func TestCreateBackend(t *testing.T) {
 	}
 }
 
-func TestGetBackend(t *testing.T) {
+func TestBackendRoute_Get(t *testing.T) {
 	tests := []struct {
 		name               string
 		input              string
@@ -136,7 +136,7 @@ func TestGetBackend(t *testing.T) {
 	}
 }
 
-func TestDeleteBackend(t *testing.T) {
+func TestBackendRoute_Delete(t *testing.T) {
 	tests := []struct {
 		name     string
 		input    string
@@ -145,7 +145,7 @@ func TestDeleteBackend(t *testing.T) {
 	}{
 		{
 			name:     "delete existing record",
-			input:    `{"data": {"id":"01F1ZQZJXQXZJXZJXZJXZJXZ00", "type": "backends", "attributes": {"name": "bind"}}}`,
+			input:    `{"data": {"id":"01F1ZQZJXQXZJXZJXZJXZJXZ00", "type": "backends", "attributes": {"name": "nsd"}}}`,
 			id:       "01F1ZQZJXQXZJXZJXZJXZJXZ00",
 			expected: http.StatusCreated,
 		},
@@ -189,7 +189,7 @@ func TestDeleteBackend(t *testing.T) {
 	}
 }
 
-func TestPatchBackendZone(t *testing.T) {
+func TestBackendRoute_UpdateZone(t *testing.T) {
 	tests := []struct {
 		name               string
 		input              string
@@ -271,7 +271,7 @@ func TestPatchBackendZone(t *testing.T) {
 	}
 }
 
-func TestPostZoneBackend(t *testing.T) {
+func TestBackendRoute_AddZone(t *testing.T) {
 	tests := []struct {
 		name               string
 		input              string
@@ -353,7 +353,7 @@ func TestPostZoneBackend(t *testing.T) {
 	}
 }
 
-func TestDeleteZoneBackend(t *testing.T) {
+func TestBackendRoute_RemoveZone(t *testing.T) {
 	tests := []struct {
 		name               string
 		input              string
@@ -366,7 +366,7 @@ func TestDeleteZoneBackend(t *testing.T) {
 		expectedStatusCode int
 	}{
 		{
-			name:               "valid input",
+			name:               "delete without any lasting zone",
 			input:              `{"data": {"id":"01F1ZQZJXQXZJXZJXZJXZJXZJX", "type": "backends", "attributes": {"name": "bind"}}}`,
 			zoneInput:          `{"data": {"id":"01F1ZQZJXQXZJXZJXZJXZJZONE", "type": "zones", "attributes": {"name": "martinez.io"}}}`,
 			payload:            `{"data": {"id":"01F1ZQZJXQXZJXZJXZJXZJZONE", "type": "zones"}}`,
@@ -377,7 +377,7 @@ func TestDeleteZoneBackend(t *testing.T) {
 			expectedStatusCode: http.StatusNoContent,
 		},
 		{
-			name:               "valid input",
+			name:               "delete with zone left",
 			input:              `{"data": {"id":"01F1ZQZJXQXZJXZJXZJXZJXZJX", "type": "backends", "attributes": {"name": "bind"}}}`,
 			zoneInput:          `{"data": {"id":"01F1ZQZJXQXZJXZJXZJXZJZONE", "type": "zones", "attributes": {"name": "martinez.io"}}}`,
 			payload:            `{"data": {"id":"01F1ZQZJXQXZJXZJXZJXZJZONE", "type": "zones"}}`,
@@ -388,7 +388,7 @@ func TestDeleteZoneBackend(t *testing.T) {
 			expectedStatusCode: http.StatusOK,
 		},
 		{
-			name:               "valid input",
+			name:               "invalid input",
 			input:              `{"data": {"id":"01F1ZQZJXQXZJXZJXZJXZJXZJX", "type": "backends", "attributes": {"name": "bind"}}}`,
 			zoneInput:          `{"data": {"id":"01F1ZQZJXQXZJXZJXZJXZJZONE", "type": "zones", "attributes": {"name": "martinez.io"}}}`,
 			payload:            `{"data": {"id":"01F1ZQZJXQXZJXZJXZJXZJZONE", "type": "zones"}}`,
@@ -456,7 +456,7 @@ func TestDeleteZoneBackend(t *testing.T) {
 	}
 }
 
-func TestGetZoneBackend(t *testing.T) {
+func TestBackendRoute_GetZone(t *testing.T) {
 	tests := []struct {
 		name               string
 		input              string
