@@ -2,6 +2,7 @@ package binder
 
 import (
 	"io"
+	"strings"
 
 	"github.com/DataDog/jsonapi"
 	"github.com/labstack/echo/v4"
@@ -30,6 +31,11 @@ func (j *JsonApiBinder) Bind(i interface{}, c echo.Context) (err error) {
 		return err
 	}
 	err = jsonapi.Unmarshal(body, i)
-
+	if err != nil {
+		if strings.Contains(err.Error(), "invalid character") {
+			return echo.ErrBadRequest
+		}
+		return err
+	}
 	return err
 }

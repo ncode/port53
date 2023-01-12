@@ -43,7 +43,13 @@ func TestJsonApiBinder(t *testing.T) {
 			expectedStruct: TestStruct{},
 			expectedError:  echo.ErrUnsupportedMediaType,
 		},
-		// Add more test cases here
+		{
+			name:           "invalid json",
+			body:           `{invalid json}`,
+			contentType:    MIMEApplicationJSONApi,
+			expectedStruct: TestStruct{},
+			expectedError:  echo.ErrBadRequest,
+		},
 	}
 
 	for _, tt := range tests {
