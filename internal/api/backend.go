@@ -53,12 +53,7 @@ func (r *BackendRoute) Create(c echo.Context) (err error) {
 
 func (r *BackendRoute) List(c echo.Context) (err error) {
 	var backends []model.Backend
-	include := c.QueryParam("include")
-	if include == "zones" {
-		err = r.db.Preload("Zones").Find(&backends).Error
-	} else {
-		err = r.db.Find(&backends).Error
-	}
+	err = r.db.Preload("Zones").Find(&backends).Error
 	if err != nil {
 		return err
 	}
