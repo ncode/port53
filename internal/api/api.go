@@ -1,6 +1,7 @@
 package api
 
 import (
+	"github.com/DataDog/jsonapi"
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
 	"github.com/labstack/gommon/log"
@@ -42,4 +43,12 @@ func Server() {
 	zone.Register(e)
 
 	e.Logger.Fatal(e.Start(viper.GetString("bindAddr")))
+}
+
+func JSONAPI(c echo.Context, code int, data interface{}) error {
+	marshal, err := jsonapi.Marshal(data)
+	if err != nil {
+		return err
+	}
+	return c.Blob(code, binder.MIMEApplicationJSONApi, marshal)
 }
