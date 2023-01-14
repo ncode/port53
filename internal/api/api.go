@@ -45,6 +45,7 @@ func Server() {
 	e.Logger.Fatal(e.Start(viper.GetString("bindAddr")))
 }
 
+// JSONAPI serializes jsonapi responses and set the proper content type
 func JSONAPI(c echo.Context, code int, data interface{}) error {
 	marshal, err := jsonapi.Marshal(data)
 	if err != nil {
