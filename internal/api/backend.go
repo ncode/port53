@@ -7,8 +7,6 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/DataDog/jsonapi"
-	"github.com/ncode/port53/pkg/binder"
 	"github.com/spf13/viper"
 	"gorm.io/gorm"
 
@@ -44,11 +42,7 @@ func (r *BackendRoute) Create(c echo.Context) (err error) {
 		}
 		return c.String(http.StatusInternalServerError, err.Error())
 	}
-	marshal, err := jsonapi.Marshal(backend)
-	if err != nil {
-		return err
-	}
-	return c.Blob(http.StatusCreated, binder.MIMEApplicationJSONApi, marshal)
+	return JSONAPI(c, http.StatusCreated, backend)
 }
 
 func (r *BackendRoute) List(c echo.Context) (err error) {
@@ -62,11 +56,8 @@ func (r *BackendRoute) List(c echo.Context) (err error) {
 			backends[pos].Zones = nil
 		}
 	}
-	marshal, err := jsonapi.Marshal(backends)
-	if err != nil {
-		return err
-	}
-	return c.Blob(http.StatusOK, binder.MIMEApplicationJSONApi, marshal)
+
+	return JSONAPI(c, http.StatusOK, backends)
 }
 
 func (r *BackendRoute) Update(c echo.Context) (err error) {
@@ -85,11 +76,7 @@ func (r *BackendRoute) Update(c echo.Context) (err error) {
 		return c.String(http.StatusBadRequest, "Name is required")
 	}
 	r.db.Model(&backend).Updates(&backend)
-	marshal, err := jsonapi.Marshal(backend)
-	if err != nil {
-		return err
-	}
-	return c.Blob(http.StatusOK, binder.MIMEApplicationJSONApi, marshal)
+	return JSONAPI(c, http.StatusOK, backend)
 }
 
 func (r *BackendRoute) Get(c echo.Context) (err error) {
@@ -104,11 +91,7 @@ func (r *BackendRoute) Get(c echo.Context) (err error) {
 	if len(backend.Zones) == 0 {
 		backend.Zones = nil
 	}
-	marshal, err := jsonapi.Marshal(backend)
-	if err != nil {
-		return err
-	}
-	return c.Blob(http.StatusOK, binder.MIMEApplicationJSONApi, marshal)
+	return JSONAPI(c, http.StatusOK, backend)
 }
 
 func (r *BackendRoute) Delete(c echo.Context) (err error) {
@@ -132,11 +115,7 @@ func (r *BackendRoute) GetZone(c echo.Context) (err error) {
 	if len(backend.Zones) == 0 {
 		return c.String(http.StatusNotFound, "Backend doesn't have any zones")
 	}
-	marshal, err := jsonapi.Marshal(backend.Zones)
-	if err != nil {
-		return err
-	}
-	return c.Blob(http.StatusOK, binder.MIMEApplicationJSONApi, marshal)
+	return JSONAPI(c, http.StatusOK, backend.Zones)
 }
 
 func (r *BackendRoute) AddZone(c echo.Context) (err error) {
@@ -174,11 +153,8 @@ func (r *BackendRoute) AddZone(c echo.Context) (err error) {
 		return err
 	}
 	r.db.Find(&zone, "id = ?", zone.ID)
-	marshal, err := jsonapi.Marshal(zone)
-	if err != nil {
-		return err
-	}
-	return c.Blob(http.StatusOK, binder.MIMEApplicationJSONApi, marshal)
+	return JSONAPI(c, http.StatusOK, zone)
+
 }
 
 func (r *BackendRoute) RemoveZone(c echo.Context) (err error) {
@@ -209,11 +185,7 @@ func (r *BackendRoute) RemoveZone(c echo.Context) (err error) {
 	if len(backend.Zones) == 0 {
 		return c.String(http.StatusNoContent, "Backend doesn't have any zones")
 	}
-	marshal, err := jsonapi.Marshal(backend.Zones)
-	if err != nil {
-		return err
-	}
-	return c.Blob(http.StatusOK, binder.MIMEApplicationJSONApi, marshal)
+	return JSONAPI(c, http.StatusOK, backend.Zones)
 }
 
 func (r *BackendRoute) UpdateZone(c echo.Context) (err error) {
@@ -256,15 +228,12 @@ func (r *BackendRoute) UpdateZone(c echo.Context) (err error) {
 	if len(existingZones) == 0 || len(existingZones) != len(zones) {
 		return c.String(http.StatusNotFound, "All zones must exist")
 	}
-	marshal, err := jsonapi.Marshal(existingZones)
-	if err != nil {
-		return err
-	}
 	err = r.db.Model(&backend).Association("Zones").Replace(existingZones)
 	if err != nil {
 		return err
 	}
-	return c.Blob(http.StatusOK, binder.MIMEApplicationJSONApi, marshal)
+	return JSONAPI(c, http.StatusOK, existingZones)
+
 }
 
 func (r *BackendRoute) Register(e *echo.Echo) {
