@@ -12,8 +12,8 @@ import (
 
 type Zone struct {
 	ID        string         `gorm:"primarykey,not null" jsonapi:"primary,zones"`
-	CreatedAt time.Time      `jsonapi:"attribute" json:"created_at"`
-	UpdatedAt time.Time      `jsonapi:"attribute" json:"updated_at"`
+	CreatedAt time.Time      `jsonapi:"attribute" json:"created_at,omitempty"`
+	UpdatedAt time.Time      `jsonapi:"attribute" json:"updated_at,omitempty"`
 	DeletedAt gorm.DeletedAt `gorm:"index" json:"-"`
 	Name      string         `gorm:"uniqueIndex;not null" jsonapi:"attribute" json:"name"`
 	TTL       int            `gorm:"default:3600" jsonapi:"attribute" json:"ttl"`
