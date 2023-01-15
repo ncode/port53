@@ -189,6 +189,47 @@ func TestBackendRoute_Delete(t *testing.T) {
 	}
 }
 
+func TestBackendRoute_List(t *testing.T) {
+	tests := []struct {
+		name               string
+		input              string
+		expectedData       []model.Backend
+		expectedStatusCode int
+	}{
+		{
+			name:               "valid input",
+			input:              `{"data": {"id":"01F1ZQZJXQXZJXZJXZJXZJXZJX", "type": "backends", "attributes": {"name": "bind"}}}`,
+			expectedData:       []model.Backend{{ID: "01F1ZQZJXQXZJXZJXZJXZJXZJX", Name: "bind"}},
+			expectedStatusCode: http.StatusOK,
+		},
+	}
+	e := echo.New()
+	e.Binder = &binder.JsonApiBinder{}
+
+	db, err := database.Database()
+	if err != nil {
+		panic(err)
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			route := &BackendRoute{db: db}
+			c, _ := postTestRequest("/v1/backends", test.input, e)
+			err = route.Create(c)
+			assert.NoError(t, err)
+
+			c, rec := getTestRequest("/v1/backends", e)
+			if assert.NoError(t, route.List(c)) {
+				assert.Equal(t, test.expectedStatusCode, rec.Code)
+				var backends []model.Backend
+				assert.NoError(t, jsonapi.Unmarshal(rec.Body.Bytes(), &backends))
+				assert.Equal(t, test.expectedData[0].ID, backends[0].ID)
+				assert.Equal(t, test.expectedData[0].Name, backends[0].Name)
+			}
+		})
+	}
+}
+
 func TestBackendRoute_UpdateZone(t *testing.T) {
 	tests := []struct {
 		name               string
