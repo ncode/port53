@@ -1,6 +1,8 @@
 package binder
 
 import (
+	"fmt"
+	"net/http"
 	"net/http/httptest"
 	"strings"
 	"testing"
@@ -50,12 +52,41 @@ func TestJsonApiBinder(t *testing.T) {
 			expectedStruct: TestStruct{},
 			expectedError:  echo.ErrBadRequest,
 		},
+		{
+			name:           "invalid body",
+			body:           "",
+			contentType:    MIMEApplicationJSONApi,
+			expectedStruct: TestStruct{},
+			expectedError:  fmt.Errorf("unexpected end of JSON input"),
+		},
+		{
+			name: "invalid jsonapi",
+			body: `{
+				"data": {
+					"type": "test",
+					"lala": [
+                        "attributes": {
+							"field1": "value1",
+							"field2": 123
+						}
+					]
+				}
+			}`,
+			contentType:    MIMEApplicationJSONApi,
+			expectedStruct: TestStruct{},
+			expectedError:  echo.ErrBadRequest,
+		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			e := echo.New()
-			req := httptest.NewRequest(echo.POST, "/", strings.NewReader(tt.body))
+			var req *http.Request
+			if tt.body == "" {
+				req = httptest.NewRequest(echo.POST, "/", nil)
+			} else {
+				req = httptest.NewRequest(echo.POST, "/", strings.NewReader(tt.body))
+			}
 			req.Header.Set(echo.HeaderContentType, tt.contentType)
 			rec := httptest.NewRecorder()
 			c := e.NewContext(req, rec)
@@ -64,7 +95,7 @@ func TestJsonApiBinder(t *testing.T) {
 			b := &JsonApiBinder{}
 			err := b.Bind(&testStruct, c)
 
-			if err != tt.expectedError {
+			if err != tt.expectedError && (err.Error() != tt.expectedError.Error()) {
 				t.Errorf("expected error %v, got %v", tt.expectedError, err)
 			}
 			if testStruct != tt.expectedStruct {

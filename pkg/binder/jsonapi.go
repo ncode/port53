@@ -21,7 +21,7 @@ func (j *JsonApiBinder) Bind(i interface{}, c echo.Context) (err error) {
 	// Use default binder if Content-Type is not application/vnd.api+json
 	b := new(echo.DefaultBinder)
 	err = b.Bind(i, c)
-	if err != echo.ErrUnsupportedMediaType {
+	if err != nil && err != echo.ErrUnsupportedMediaType {
 		return err
 	}
 
