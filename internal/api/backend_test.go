@@ -15,10 +15,12 @@ import (
 )
 
 func init() {
-	viper.Set("database", "file::memory:?cache=shared")
+	viper.Set("database", "file:backend?mode=memory&cache=shared")
 }
 
 func TestBackendRoute_Create(t *testing.T) {
+	defer TearDown()
+
 	tests := []struct {
 		name                   string
 		input                  string
@@ -82,6 +84,8 @@ func TestBackendRoute_Create(t *testing.T) {
 }
 
 func TestBackendRoute_Get(t *testing.T) {
+	defer TearDown()
+
 	tests := []struct {
 		name               string
 		input              string
@@ -137,6 +141,8 @@ func TestBackendRoute_Get(t *testing.T) {
 }
 
 func TestBackendRoute_Delete(t *testing.T) {
+	defer TearDown()
+
 	tests := []struct {
 		name     string
 		input    string
@@ -190,6 +196,8 @@ func TestBackendRoute_Delete(t *testing.T) {
 }
 
 func TestBackendRoute_List(t *testing.T) {
+	defer TearDown()
+
 	tests := []struct {
 		name               string
 		input              string
@@ -231,6 +239,8 @@ func TestBackendRoute_List(t *testing.T) {
 }
 
 func TestBackendRoute_UpdateZone(t *testing.T) {
+	defer TearDown()
+
 	tests := []struct {
 		name               string
 		input              string
@@ -299,7 +309,7 @@ func TestBackendRoute_UpdateZone(t *testing.T) {
 			c, recPatch := patchTestRequest("/v1/backends/:id/zones", test.payload, e)
 			c.SetParamNames("id")
 			c.SetParamValues(test.id)
-			if assert.NoError(t, routeBackend.UpdateZone(c)) {
+			if assert.NoError(t, routeBackend.UpdateZones(c)) {
 				assert.Equal(t, test.expectedStatusCode, recPatch.Code)
 				if test.zoneID != "" {
 					var zones []model.Zone
@@ -313,6 +323,8 @@ func TestBackendRoute_UpdateZone(t *testing.T) {
 }
 
 func TestBackendRoute_AddZone(t *testing.T) {
+	defer TearDown()
+
 	tests := []struct {
 		name               string
 		input              string
@@ -394,7 +406,72 @@ func TestBackendRoute_AddZone(t *testing.T) {
 	}
 }
 
+func TestBackendRoute_GetZone(t *testing.T) {
+	defer TearDown()
+
+	tests := []struct {
+		name               string
+		input              string
+		zoneInput          string
+		payload            string
+		id                 string
+		zoneID             string
+		expectedData       *model.Zone
+		expectedStatusCode int
+	}{
+		{
+			name:               "valid input",
+			input:              `{"data": {"id":"01F1ZQZJXQXZJXZJXZJXZJXZJX", "type": "backends", "attributes": {"name": "bind"}}}`,
+			zoneInput:          `{"data": {"id":"01F1ZQZJXQXZJXZJXZJXZJZONE", "type": "zones", "attributes": {"name": "martinez.io"}}}`,
+			payload:            `{"data": {"id":"01F1ZQZJXQXZJXZJXZJXZJZONE", "type": "zones"}}`,
+			id:                 "01F1ZQZJXQXZJXZJXZJXZJXZJX",
+			zoneID:             "01F1ZQZJXQXZJXZJXZJXZJZONE",
+			expectedData:       &model.Zone{ID: "01F1ZQZJXQXZJXZJXZJXZJZONE", Name: "martinez.io"},
+			expectedStatusCode: http.StatusOK,
+		},
+	}
+	e := echo.New()
+	e.Binder = &binder.JsonApiBinder{}
+
+	db, err := database.Database()
+	if err != nil {
+		panic(err)
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			routeBackend := &BackendRoute{db: db}
+			c, _ := postTestRequest("/v1/backends", test.input, e)
+			err = routeBackend.Create(c)
+			assert.NoError(t, err)
+
+			routeZone := &ZoneRoute{db: db}
+			c, _ = postTestRequest("/v1/zones", test.zoneInput, e)
+			err = routeZone.Create(c)
+			assert.NoError(t, err)
+
+			c, _ = postTestRequest("/v1/backends/:id/zones", test.payload, e)
+			c.SetParamNames("id")
+			c.SetParamValues(test.id)
+			assert.NoError(t, routeBackend.AddZone(c))
+
+			c, recGet := getTestRequest("/v1/backends/:id/zones", e)
+			c.SetParamNames("id")
+			c.SetParamValues(test.id)
+			if assert.NoError(t, routeBackend.GetZones(c)) {
+				assert.Equal(t, http.StatusOK, recGet.Code)
+				var zones []model.Zone
+				assert.NoError(t, jsonapi.Unmarshal(recGet.Body.Bytes(), &zones))
+				assert.Equal(t, test.expectedData.ID, zones[0].ID)
+				assert.Equal(t, test.expectedData.Name, zones[0].Name)
+			}
+		})
+	}
+}
+
 func TestBackendRoute_RemoveZone(t *testing.T) {
+	defer TearDown()
+
 	tests := []struct {
 		name               string
 		input              string
@@ -468,7 +545,7 @@ func TestBackendRoute_RemoveZone(t *testing.T) {
 			c, recGet := getTestRequest("/v1/backends/:id/zones", e)
 			c.SetParamNames("id")
 			c.SetParamValues(test.id)
-			if assert.NoError(t, routeBackend.GetZone(c)) {
+			if assert.NoError(t, routeBackend.GetZones(c)) {
 				assert.Equal(t, http.StatusOK, recGet.Code)
 				var zones []model.Zone
 				assert.NoError(t, jsonapi.Unmarshal(recGet.Body.Bytes(), &zones))
@@ -486,73 +563,12 @@ func TestBackendRoute_RemoveZone(t *testing.T) {
 			c, recGet = getTestRequest("/v1/backends/:id/zones", e)
 			c.SetParamNames("id")
 			c.SetParamValues(test.id)
-			if assert.NoError(t, routeBackend.GetZone(c)) {
+			if assert.NoError(t, routeBackend.GetZones(c)) {
 				if test.expectedStatusCode == http.StatusNoContent {
 					assert.Equal(t, http.StatusNotFound, recGet.Code)
 				} else {
 					assert.Equal(t, http.StatusOK, recGet.Code)
 				}
-			}
-		})
-	}
-}
-
-func TestBackendRoute_GetZone(t *testing.T) {
-	tests := []struct {
-		name               string
-		input              string
-		zoneInput          string
-		payload            string
-		id                 string
-		zoneID             string
-		expectedData       *model.Zone
-		expectedStatusCode int
-	}{
-		{
-			name:               "valid input",
-			input:              `{"data": {"id":"01F1ZQZJXQXZJXZJXZJXZJXZJX", "type": "backends", "attributes": {"name": "bind"}}}`,
-			zoneInput:          `{"data": {"id":"01F1ZQZJXQXZJXZJXZJXZJZONE", "type": "zones", "attributes": {"name": "martinez.io"}}}`,
-			payload:            `{"data": {"id":"01F1ZQZJXQXZJXZJXZJXZJZONE", "type": "zones"}}`,
-			id:                 "01F1ZQZJXQXZJXZJXZJXZJXZJX",
-			zoneID:             "01F1ZQZJXQXZJXZJXZJXZJZONE",
-			expectedData:       &model.Zone{ID: "01F1ZQZJXQXZJXZJXZJXZJZONE", Name: "martinez.io"},
-			expectedStatusCode: http.StatusOK,
-		},
-	}
-	e := echo.New()
-	e.Binder = &binder.JsonApiBinder{}
-
-	db, err := database.Database()
-	if err != nil {
-		panic(err)
-	}
-
-	for _, test := range tests {
-		t.Run(test.name, func(t *testing.T) {
-			routeBackend := &BackendRoute{db: db}
-			c, _ := postTestRequest("/v1/backends", test.input, e)
-			err = routeBackend.Create(c)
-			assert.NoError(t, err)
-
-			routeZone := &ZoneRoute{db: db}
-			c, _ = postTestRequest("/v1/zones", test.zoneInput, e)
-			err = routeZone.Create(c)
-			assert.NoError(t, err)
-
-			c, _ = postTestRequest("/v1/backends/:id/zones", test.payload, e)
-			c.SetParamNames("id")
-			c.SetParamValues(test.id)
-			assert.NoError(t, routeBackend.AddZone(c))
-
-			c, recGet := getTestRequest("/v1/backends/:id/zones", e)
-			c.SetParamNames("id")
-			c.SetParamValues(test.id)
-			if assert.NoError(t, routeBackend.GetZone(c)) {
-				assert.Equal(t, http.StatusOK, recGet.Code)
-				var zones []model.Zone
-				assert.NoError(t, jsonapi.Unmarshal(recGet.Body.Bytes(), &zones))
-				assert.Equal(t, test.expectedData.ID, zones[0].ID)
-				assert.Equal(t, test.expectedData.Name, zones[0].Name)
 			}
 		})
 	}

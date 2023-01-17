@@ -55,8 +55,8 @@ func TestBackend_Get(t *testing.T) {
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			// Set up a test database and create a test backend
-			db, err := gorm.Open(sqlite.Open("file::memory:?cache=shared"), &gorm.Config{})
+			// Set up a test database and create a test zone
+			db, err := gorm.Open(sqlite.Open("file:backend?mode=memory&cache=shared"), &gorm.Config{})
 			if err != nil {
 				t.Fatalf("Error setting up test database: %s", err)
 			}
@@ -76,7 +76,7 @@ func TestBackend_Get(t *testing.T) {
 						return
 					}
 				}
-				t.Fatalf("Error creating test backend: %s", err)
+				t.Fatalf("Error creating test zone: %s", err)
 			}
 
 			// Call the Get method and check the error
@@ -89,7 +89,7 @@ func TestBackend_Get(t *testing.T) {
 				return
 			}
 
-			// Check that the backend fields are correct
+			// Check that the zone fields are correct
 			if test.backend.ID != testBackend.ID {
 				t.Errorf("Unexpected ID: got %s, want %s", test.backend.ID, testBackend.ID)
 			}
@@ -178,7 +178,7 @@ func TestBackend_Delete(t *testing.T) {
 			expectedError: nil,
 		},
 		{
-			name: "Delete non-existent backend",
+			name: "Delete non-existent zone",
 			backend: Backend{
 				Name: ulid.Make().String(),
 			},
@@ -187,8 +187,8 @@ func TestBackend_Delete(t *testing.T) {
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			// Set up a test database and create a test backend
-			db, err := gorm.Open(sqlite.Open("file::memory:?cache=shared"), &gorm.Config{})
+			// Set up a test database and create a test zone
+			db, err := gorm.Open(sqlite.Open("file:backend?mode=memory&cache=shared"), &gorm.Config{})
 			if err != nil {
 				t.Fatalf("Error setting up test database: %s", err)
 			}
@@ -203,7 +203,7 @@ func TestBackend_Delete(t *testing.T) {
 				Name:      test.backend.Name,
 			}
 			if err := db.Create(&testBackend).Error; err != nil {
-				t.Fatalf("Error creating test backend: %s", err)
+				t.Fatalf("Error creating test zone: %s", err)
 			}
 
 			if test.backend.ID == "" {
@@ -216,7 +216,7 @@ func TestBackend_Delete(t *testing.T) {
 				t.Errorf("Unexpected error: got %s, want %s", err, test.expectedError)
 			}
 
-			// Check that the backend is deleted
+			// Check that the zone is deleted
 			var count int64
 			db.Model(&Backend{}).Where("id = ?", test.backend.ID).Count(&count)
 			if count != 0 {

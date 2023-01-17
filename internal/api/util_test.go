@@ -5,9 +5,15 @@ import (
 	"net/http/httptest"
 	"strings"
 
+	"github.com/ncode/port53/pkg/database"
+
 	"github.com/labstack/echo/v4"
 	"github.com/ncode/port53/pkg/binder"
 )
+
+func TearDown() {
+	database.Close()
+}
 
 func getTestRequest(target string, e *echo.Echo) (c echo.Context, recGet *httptest.ResponseRecorder) {
 	get := httptest.NewRequest(http.MethodGet, target, nil)
