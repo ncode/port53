@@ -76,3 +76,58 @@ func TestZonedRoute_Create(t *testing.T) {
 		})
 	}
 }
+
+func TestZonedRoute_Get(t *testing.T) {
+	tests := []struct {
+		name               string
+		input              string
+		id                 string
+		expectedData       *model.Zone
+		expectedStatusCode int
+	}{
+		{
+			name:               "record exists",
+			id:                 "01F1ZQZJXQXZJXZJXZJXZJXZJX",
+			input:              `{"data": {"id":"01F1ZQZJXQXZJXZJXZJXZJXZJX", "type": "zones", "attributes": {"name": "martinez.io"}}}`,
+			expectedData:       &model.Zone{ID: "01F1ZQZJXQXZJXZJXZJXZJXZJX", Name: "martinez.io"},
+			expectedStatusCode: http.StatusOK,
+		},
+		{
+			name:               "record does not exist",
+			id:                 "01F1ZQZJXQXZJXZJXZJXZJXZZZ",
+			expectedStatusCode: http.StatusNotFound,
+		},
+	}
+
+	e := echo.New()
+	e.Binder = &binder.JsonApiBinder{}
+
+	db, err := database.Database()
+	if err != nil {
+		panic(err)
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			routeZone := &ZoneRoute{db: db}
+			if test.input != "" {
+				c, _ := postTestRequest("/v1/zones", test.input, e)
+				err = routeZone.Create(c)
+				assert.NoError(t, err)
+			}
+
+			c, recGet := getTestRequest("/v1/zones/:id", e)
+			c.SetParamNames("id")
+			c.SetParamValues(test.id)
+			if assert.NoError(t, routeZone.Get(c)) {
+				assert.Equal(t, test.expectedStatusCode, recGet.Code)
+				if test.expectedData != nil {
+					zone := &model.Zone{}
+					assert.NoError(t, jsonapi.Unmarshal(recGet.Body.Bytes(), zone))
+					assert.Equal(t, test.expectedData.Name, zone.Name)
+					assert.Equal(t, test.expectedData.ID, zone.ID)
+				}
+			}
+		})
+	}
+}

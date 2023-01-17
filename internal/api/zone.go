@@ -91,13 +91,13 @@ func (r *ZoneRoute) Update(c echo.Context) (err error) {
 
 // Get gets a zone
 func (r *ZoneRoute) Get(c echo.Context) (err error) {
-	var zone model.Zone
-	err = r.db.Preload("Backends").First(&zone, "id = ?", c.Param("id")).Error
+	zone := model.Zone{ID: c.Param("id")}
+	err = zone.Get(r.db, true)
 	if err != nil {
+		if err.Error() == "record not found" {
+			return c.String(http.StatusNotFound, "Backend not found")
+		}
 		return err
-	}
-	if zone.ID == "" {
-		return c.String(http.StatusNotFound, "Not found")
 	}
 	if len(zone.Backends) == 0 {
 		zone.Backends = nil
