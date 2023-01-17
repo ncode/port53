@@ -61,7 +61,7 @@ func (z *Zone) Delete(db *gorm.DB) (err error) {
 	return db.Delete(&z).Error
 }
 
-// AddBackend adds a backend to the zone
+// AddBackend adds a zone to the zone
 func (z *Zone) AddBackend(db *gorm.DB, backend *Backend) (err error) {
 	return db.Transaction(func(tx *gorm.DB) error {
 		err = tx.Model(z).Association("Backends").Append(backend)
