@@ -56,3 +56,7 @@ func (z *Zone) Get(db *gorm.DB, preload bool) (err error) {
 	}
 	return db.First(z, "id = ?", z.ID).Error
 }
+
+func (z *Zone) Delete(db *gorm.DB) (err error) {
+	return db.Delete(&z).Error
+}

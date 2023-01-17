@@ -61,13 +61,13 @@ func (r *BackendRoute) List(c echo.Context) (err error) {
 }
 
 func (r *BackendRoute) Update(c echo.Context) (err error) {
-	var backend model.Backend
-	err = r.db.First(&backend, "id = ?", c.Param("id")).Error
+	backend := &model.Backend{ID: c.Param("id")}
+	err = backend.Get(r.db, true)
 	if err != nil {
+		if err.Error() == "record not found" {
+			return c.String(http.StatusNotFound, "Backend not found")
+		}
 		return err
-	}
-	if backend.ID == "" {
-		return c.String(http.StatusNotFound, "Backend not found")
 	}
 	if err := c.Bind(&backend); err != nil {
 		return err
@@ -127,9 +127,6 @@ func (r *BackendRoute) AddZone(c echo.Context) (err error) {
 		}
 		return err
 	}
-	if backend.ID == "" {
-		return c.String(http.StatusNotFound, "Backend not found")
-	}
 	var zone model.Zone
 	if err := c.Bind(&zone); err != nil {
 		if strings.Contains(err.Error(), "body is not a json:api representation") {
@@ -158,10 +155,13 @@ func (r *BackendRoute) AddZone(c echo.Context) (err error) {
 }
 
 func (r *BackendRoute) RemoveZone(c echo.Context) (err error) {
-	var backend model.Backend
-	r.db.Preload("Zones").First(&backend, "id = ?", c.Param("id"))
-	if backend.ID == "" {
-		return c.String(http.StatusNotFound, "Backend not found")
+	backend := &model.Backend{ID: c.Param("id")}
+	err = backend.Get(r.db, true)
+	if err != nil {
+		if err.Error() == "record not found" {
+			return c.String(http.StatusNotFound, "Backend not found")
+		}
+		return err
 	}
 	var zone model.Zone
 	if err := c.Bind(&zone); err != nil {
@@ -189,13 +189,13 @@ func (r *BackendRoute) RemoveZone(c echo.Context) (err error) {
 }
 
 func (r *BackendRoute) UpdateZone(c echo.Context) (err error) {
-	var backend model.Backend
-	err = r.db.First(&backend, "id = ?", c.Param("id")).Error
+	backend := &model.Backend{ID: c.Param("id")}
+	err = backend.Get(r.db, true)
 	if err != nil {
+		if err.Error() == "record not found" {
+			return c.String(http.StatusNotFound, "Backend not found")
+		}
 		return err
-	}
-	if backend.ID == "" {
-		return c.String(http.StatusNotFound, "Backend not found")
 	}
 	var zones []model.Zone
 	if err := c.Bind(&zones); err != nil {
