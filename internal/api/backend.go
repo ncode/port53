@@ -158,7 +158,6 @@ func (r *BackendRoute) AddZone(c echo.Context) (err error) {
 	}
 	r.db.Find(&zone, "id = ?", zone.ID)
 	return JSONAPI(c, http.StatusOK, zone)
-
 }
 
 // RemoveZone removes a zone from a backend

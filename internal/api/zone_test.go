@@ -225,3 +225,64 @@ func TestZoneRoute_List(t *testing.T) {
 		})
 	}
 }
+
+func TestZonedRoute_GetBackend(t *testing.T) {
+	tests := []struct {
+		name               string
+		input              string
+		zoneInput          string
+		payload            string
+		id                 string
+		zoneID             string
+		expectedData       *model.Backend
+		expectedStatusCode int
+	}{
+		{
+			name:               "valid input",
+			input:              `{"data": {"id":"01F1ZQZJXQXZJXZJXZJXZJXZJX", "type": "zones", "attributes": {"name": "martinez.io"}}}`,
+			zoneInput:          `{"data": {"id":"01F1ZQZJXQXZJXZJXZJXZJZONE", "type": "backends", "attributes": {"name": "nsd"}}}`,
+			payload:            `{"data": {"id":"01F1ZQZJXQXZJXZJXZJXZJZONE", "type": "backends"}}`,
+			id:                 "01F1ZQZJXQXZJXZJXZJXZJXZJX",
+			zoneID:             "01F1ZQZJXQXZJXZJXZJXZJZONE",
+			expectedData:       &model.Backend{ID: "01F1ZQZJXQXZJXZJXZJXZJZONE", Name: "nsd"},
+			expectedStatusCode: http.StatusOK,
+		},
+	}
+	e := echo.New()
+	e.Binder = &binder.JsonApiBinder{}
+
+	db, err := database.Database()
+	if err != nil {
+		panic(err)
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			routeZone := &ZoneRoute{db: db}
+			c, _ := postTestRequest("/v1/zones", test.input, e)
+			err = routeZone.Create(c)
+			assert.NoError(t, err)
+
+			routeBackend := &BackendRoute{db: db}
+			c, _ = postTestRequest("/v1/backends", test.zoneInput, e)
+			err = routeBackend.Create(c)
+			assert.NoError(t, err)
+
+			c, _ = postTestRequest("/v1/zones/:id/backends", test.payload, e)
+			c.SetParamNames("id")
+			c.SetParamValues(test.id)
+			assert.NoError(t, routeZone.AddBackend(c))
+
+			c, recGet := getTestRequest("/v1/zones/:id/backends", e)
+			c.SetParamNames("id")
+			c.SetParamValues(test.id)
+			if assert.NoError(t, routeZone.GetBackends(c)) {
+				assert.Equal(t, http.StatusOK, recGet.Code)
+				var zones []model.Zone
+				assert.NoError(t, jsonapi.Unmarshal(recGet.Body.Bytes(), &zones))
+				assert.Equal(t, test.expectedData.ID, zones[0].ID)
+				assert.Equal(t, test.expectedData.Name, zones[0].Name)
+			}
+		})
+	}
+}

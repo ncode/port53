@@ -3,6 +3,7 @@ package api
 import (
 	"fmt"
 	"net/http"
+	"strings"
 
 	"github.com/DataDog/jsonapi"
 	"github.com/ncode/port53/pkg/binder"
@@ -132,6 +133,39 @@ func (r *ZoneRoute) GetBackends(c echo.Context) (err error) {
 		zone.Backends = nil
 	}
 	return JSONAPI(c, http.StatusOK, zone.Backends)
+}
+
+// AddBackend adds a zone to a backend
+func (r *ZoneRoute) AddBackend(c echo.Context) (err error) {
+	zone := model.Zone{ID: c.Param("id")}
+	err = zone.Get(r.db, false)
+	if err != nil {
+		if err.Error() == "record not found" {
+			return c.String(http.StatusNotFound, "Zone not found")
+		}
+		return err
+	}
+	var backend model.Backend
+	if err := c.Bind(&backend); err != nil {
+		if strings.Contains(err.Error(), "body is not a json:api representation") {
+			return c.String(http.StatusBadRequest, "Backend ID is required")
+		}
+		return err
+	}
+	existingBackend := model.Backend{ID: backend.ID}
+	err = existingBackend.Get(r.db, false)
+	if err != nil && err.Error() == "record not found" {
+		if err.Error() == "record not found" {
+			return c.String(http.StatusNotFound, "Backend not found")
+		}
+		return err
+	}
+	err = zone.AddBackend(r.db, &existingBackend)
+	if err != nil {
+		return err
+	}
+	r.db.Find(&zone, "id = ?", zone.ID)
+	return JSONAPI(c, http.StatusOK, zone)
 }
 
 func (r *ZoneRoute) Register(e *echo.Echo) {
