@@ -299,7 +299,7 @@ func TestBackendRoute_UpdateZone(t *testing.T) {
 			c, recPatch := patchTestRequest("/v1/backends/:id/zones", test.payload, e)
 			c.SetParamNames("id")
 			c.SetParamValues(test.id)
-			if assert.NoError(t, routeBackend.UpdateZone(c)) {
+			if assert.NoError(t, routeBackend.UpdateZones(c)) {
 				assert.Equal(t, test.expectedStatusCode, recPatch.Code)
 				if test.zoneID != "" {
 					var zones []model.Zone
@@ -468,7 +468,7 @@ func TestBackendRoute_RemoveZone(t *testing.T) {
 			c, recGet := getTestRequest("/v1/backends/:id/zones", e)
 			c.SetParamNames("id")
 			c.SetParamValues(test.id)
-			if assert.NoError(t, routeBackend.GetZone(c)) {
+			if assert.NoError(t, routeBackend.GetZones(c)) {
 				assert.Equal(t, http.StatusOK, recGet.Code)
 				var zones []model.Zone
 				assert.NoError(t, jsonapi.Unmarshal(recGet.Body.Bytes(), &zones))
@@ -486,7 +486,7 @@ func TestBackendRoute_RemoveZone(t *testing.T) {
 			c, recGet = getTestRequest("/v1/backends/:id/zones", e)
 			c.SetParamNames("id")
 			c.SetParamValues(test.id)
-			if assert.NoError(t, routeBackend.GetZone(c)) {
+			if assert.NoError(t, routeBackend.GetZones(c)) {
 				if test.expectedStatusCode == http.StatusNoContent {
 					assert.Equal(t, http.StatusNotFound, recGet.Code)
 				} else {
@@ -547,7 +547,7 @@ func TestBackendRoute_GetZone(t *testing.T) {
 			c, recGet := getTestRequest("/v1/backends/:id/zones", e)
 			c.SetParamNames("id")
 			c.SetParamValues(test.id)
-			if assert.NoError(t, routeBackend.GetZone(c)) {
+			if assert.NoError(t, routeBackend.GetZones(c)) {
 				assert.Equal(t, http.StatusOK, recGet.Code)
 				var zones []model.Zone
 				assert.NoError(t, jsonapi.Unmarshal(recGet.Body.Bytes(), &zones))

@@ -103,7 +103,7 @@ func (r *BackendRoute) Delete(c echo.Context) (err error) {
 	return c.NoContent(http.StatusNoContent)
 }
 
-func (r *BackendRoute) GetZone(c echo.Context) (err error) {
+func (r *BackendRoute) GetZones(c echo.Context) (err error) {
 	backend := &model.Backend{ID: c.Param("id")}
 	err = backend.Get(r.db, true)
 	if err != nil {
@@ -188,7 +188,7 @@ func (r *BackendRoute) RemoveZone(c echo.Context) (err error) {
 	return JSONAPI(c, http.StatusOK, backend.Zones)
 }
 
-func (r *BackendRoute) UpdateZone(c echo.Context) (err error) {
+func (r *BackendRoute) UpdateZones(c echo.Context) (err error) {
 	backend := &model.Backend{ID: c.Param("id")}
 	err = backend.Get(r.db, true)
 	if err != nil {
@@ -243,8 +243,8 @@ func (r *BackendRoute) Register(e *echo.Echo) {
 	e.PATCH("/v1/backends/:id", r.Update)
 	e.GET("/v1/backends", r.List)
 	// Relationships
-	e.GET("/v1/backends/:id/zones", r.GetZone)
+	e.GET("/v1/backends/:id/zones", r.GetZones)
 	e.POST("/v1/backends/:id/zones", r.AddZone)
-	e.PATCH("/v1/backends/:id/zones", r.UpdateZone)
+	e.PATCH("/v1/backends/:id/zones", r.UpdateZones)
 	e.DELETE("/v1/backends/:id/zones", r.RemoveZone)
 }
