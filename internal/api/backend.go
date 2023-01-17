@@ -18,6 +18,7 @@ type BackendRoute struct {
 	db *gorm.DB
 }
 
+// Create creates a new backend
 func (r *BackendRoute) Create(c echo.Context) (err error) {
 	var backend model.Backend
 	if err := c.Bind(&backend); err != nil {
@@ -45,6 +46,7 @@ func (r *BackendRoute) Create(c echo.Context) (err error) {
 	return JSONAPI(c, http.StatusCreated, backend)
 }
 
+// List lists all backends
 func (r *BackendRoute) List(c echo.Context) (err error) {
 	var backends []model.Backend
 	err = r.db.Preload("Zones").Find(&backends).Error
@@ -60,6 +62,7 @@ func (r *BackendRoute) List(c echo.Context) (err error) {
 	return JSONAPI(c, http.StatusOK, backends)
 }
 
+// Update updates a backend
 func (r *BackendRoute) Update(c echo.Context) (err error) {
 	backend := &model.Backend{ID: c.Param("id")}
 	err = backend.Get(r.db, true)
@@ -79,6 +82,7 @@ func (r *BackendRoute) Update(c echo.Context) (err error) {
 	return JSONAPI(c, http.StatusOK, backend)
 }
 
+// Get gets a backend
 func (r *BackendRoute) Get(c echo.Context) (err error) {
 	backend := &model.Backend{ID: c.Param("id")}
 	err = backend.Get(r.db, true)
@@ -94,6 +98,7 @@ func (r *BackendRoute) Get(c echo.Context) (err error) {
 	return JSONAPI(c, http.StatusOK, backend)
 }
 
+// Delete deletes a backend
 func (r *BackendRoute) Delete(c echo.Context) (err error) {
 	backend := &model.Backend{ID: c.Param("id")}
 	err = backend.Delete(r.db)
@@ -103,6 +108,7 @@ func (r *BackendRoute) Delete(c echo.Context) (err error) {
 	return c.NoContent(http.StatusNoContent)
 }
 
+// GetZones gets all zones for a backend
 func (r *BackendRoute) GetZones(c echo.Context) (err error) {
 	backend := &model.Backend{ID: c.Param("id")}
 	err = backend.Get(r.db, true)
@@ -118,6 +124,7 @@ func (r *BackendRoute) GetZones(c echo.Context) (err error) {
 	return JSONAPI(c, http.StatusOK, backend.Zones)
 }
 
+// AddZone adds a zone to a backend
 func (r *BackendRoute) AddZone(c echo.Context) (err error) {
 	backend := &model.Backend{ID: c.Param("id")}
 	err = backend.Get(r.db, false)
@@ -154,6 +161,7 @@ func (r *BackendRoute) AddZone(c echo.Context) (err error) {
 
 }
 
+// RemoveZone removes a zone from a backend
 func (r *BackendRoute) RemoveZone(c echo.Context) (err error) {
 	backend := &model.Backend{ID: c.Param("id")}
 	err = backend.Get(r.db, true)
@@ -188,6 +196,7 @@ func (r *BackendRoute) RemoveZone(c echo.Context) (err error) {
 	return JSONAPI(c, http.StatusOK, backend.Zones)
 }
 
+// UpdateZones updates zones for a backend
 func (r *BackendRoute) UpdateZones(c echo.Context) (err error) {
 	backend := &model.Backend{ID: c.Param("id")}
 	err = backend.Get(r.db, true)
@@ -236,6 +245,7 @@ func (r *BackendRoute) UpdateZones(c echo.Context) (err error) {
 
 }
 
+// Register registers the routes for the backend
 func (r *BackendRoute) Register(e *echo.Echo) {
 	e.GET("/v1/backends/:id", r.Get)
 	e.DELETE("/v1/backends/:id", r.Delete)
