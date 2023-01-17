@@ -5,8 +5,6 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/DataDog/jsonapi"
-	"github.com/ncode/port53/pkg/binder"
 	"github.com/spf13/viper"
 	"gorm.io/gorm"
 
@@ -43,11 +41,7 @@ func (r *ZoneRoute) Create(c echo.Context) (err error) {
 		}
 		return c.String(http.StatusInternalServerError, err.Error())
 	}
-	marshal, err := jsonapi.Marshal(zone)
-	if err != nil {
-		return err
-	}
-	return c.Blob(http.StatusCreated, binder.MIMEApplicationJSONApi, marshal)
+	return JSONAPI(c, http.StatusCreated, zone)
 }
 
 // List lists all zones
@@ -62,11 +56,7 @@ func (r *ZoneRoute) List(c echo.Context) (err error) {
 			zones[pos].Backends = nil
 		}
 	}
-	marshal, err := jsonapi.Marshal(zones)
-	if err != nil {
-		return err
-	}
-	return c.Blob(http.StatusOK, binder.MIMEApplicationJSONApi, marshal)
+	return JSONAPI(c, http.StatusOK, zones)
 }
 
 // Update updates a zone
@@ -83,11 +73,7 @@ func (r *ZoneRoute) Update(c echo.Context) (err error) {
 		return err
 	}
 	r.db.Model(&zone).Updates(&zone)
-	marshal, err := jsonapi.Marshal(zone)
-	if err != nil {
-		return err
-	}
-	return c.Blob(http.StatusOK, binder.MIMEApplicationJSONApi, marshal)
+	return JSONAPI(c, http.StatusOK, zone)
 }
 
 // Get gets a zone
@@ -103,11 +89,10 @@ func (r *ZoneRoute) Get(c echo.Context) (err error) {
 	if len(zone.Backends) == 0 {
 		zone.Backends = nil
 	}
-	marshal, err := jsonapi.Marshal(zone)
-	if err != nil {
-		return err
+	if len(zone.Records) == 0 {
+		zone.Records = nil
 	}
-	return c.Blob(http.StatusOK, binder.MIMEApplicationJSONApi, marshal)
+	return JSONAPI(c, http.StatusOK, zone)
 }
 
 // Delete deletes a zone
@@ -130,7 +115,7 @@ func (r *ZoneRoute) GetBackends(c echo.Context) (err error) {
 		return err
 	}
 	if len(zone.Backends) == 0 {
-		zone.Backends = nil
+		return JSONAPI(c, http.StatusOK, nil)
 	}
 	return JSONAPI(c, http.StatusOK, zone.Backends)
 }

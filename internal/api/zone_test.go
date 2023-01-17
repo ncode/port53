@@ -14,7 +14,13 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+func init() {
+	viper.Set("database", "file:zone?mode=memory&cache=shared")
+}
+
 func TestZonedRoute_Create(t *testing.T) {
+	defer TearDown()
+
 	tests := []struct {
 		name                   string
 		input                  string
@@ -24,8 +30,8 @@ func TestZonedRoute_Create(t *testing.T) {
 	}{
 		{
 			name:               "valid input",
-			input:              `{"data": {"id":"01F1ZQZJXQXZJXZJXZJXZJXZJX", "type": "zones", "attributes": {"name": "martinez.io"}}}`,
-			expectedData:       &model.Zone{ID: "01F1ZQZJXQXZJXZJXZJXZJXZJX", Name: "martinez.io"},
+			input:              `{"data": {"id":"01F1ZQZJXQXZJXZJXZJXZJXZJX", "type": "zones", "attributes": {"name": "internal.martinez.io"}}}`,
+			expectedData:       &model.Zone{ID: "01F1ZQZJXQXZJXZJXZJXZJXZJX", Name: "internal.martinez.io"},
 			expectedStatusCode: http.StatusCreated,
 		},
 		{
@@ -41,7 +47,7 @@ func TestZonedRoute_Create(t *testing.T) {
 		},
 		{
 			name:                   "name conflict",
-			input:                  `{"data": {"id":"01F1ZQZJXQXZJXZJXZJXZJXX0X", "type": "zones", "attributes": {"name": "martinez.io"}}}`,
+			input:                  `{"data": {"id":"01F1ZQZJXQXZJXZJXZJXZJXX0X", "type": "zones", "attributes": {"name": "internal.martinez.io"}}}`,
 			expectedLocationHeader: fmt.Sprintf("%s/v1/zones/%s", viper.GetString("serviceUrl"), "01F1ZQZJXQXZJXZJXZJXZJXZJX"),
 			expectedStatusCode:     http.StatusConflict,
 		},
@@ -78,6 +84,8 @@ func TestZonedRoute_Create(t *testing.T) {
 }
 
 func TestZonedRoute_Get(t *testing.T) {
+	defer TearDown()
+
 	tests := []struct {
 		name               string
 		input              string
@@ -88,8 +96,8 @@ func TestZonedRoute_Get(t *testing.T) {
 		{
 			name:               "record exists",
 			id:                 "01F1ZQZJXQXZJXZJXZJXZJXZJX",
-			input:              `{"data": {"id":"01F1ZQZJXQXZJXZJXZJXZJXZJX", "type": "zones", "attributes": {"name": "martinez.io"}}}`,
-			expectedData:       &model.Zone{ID: "01F1ZQZJXQXZJXZJXZJXZJXZJX", Name: "martinez.io"},
+			input:              `{"data": {"id":"01F1ZQZJXQXZJXZJXZJXZJXZJX", "type": "zones", "attributes": {"name": "internal.martinez.io"}}}`,
+			expectedData:       &model.Zone{ID: "01F1ZQZJXQXZJXZJXZJXZJXZJX", Name: "internal.martinez.io", Records: []*model.Record{}},
 			expectedStatusCode: http.StatusOK,
 		},
 		{
@@ -123,6 +131,7 @@ func TestZonedRoute_Get(t *testing.T) {
 				assert.Equal(t, test.expectedStatusCode, recGet.Code)
 				if test.expectedData != nil {
 					zone := &model.Zone{}
+					fmt.Println(recGet.Body.String())
 					assert.NoError(t, jsonapi.Unmarshal(recGet.Body.Bytes(), zone))
 					assert.Equal(t, test.expectedData.Name, zone.Name)
 					assert.Equal(t, test.expectedData.ID, zone.ID)
@@ -133,6 +142,8 @@ func TestZonedRoute_Get(t *testing.T) {
 }
 
 func TestZoneRoute_Delete(t *testing.T) {
+	defer TearDown()
+
 	tests := []struct {
 		name     string
 		input    string
@@ -141,8 +152,8 @@ func TestZoneRoute_Delete(t *testing.T) {
 	}{
 		{
 			name:     "delete existing record",
-			input:    `{"data": {"id":"01F1ZQZJXQXZJXZJXZJXZJXZ00", "type": "zones", "attributes": {"name": "martinez.io"}}}`,
-			id:       "01F1ZQZJXQXZJXZJXZJXZJXZ00",
+			input:    `{"data": {"id":"01F1ZQZJXQXZJXZJXZJXZJXZ11", "type": "zones", "attributes": {"name": "another.martinez.io"}}}`,
+			id:       "01F1ZQZJXQXZJXZJXZJXZJXZ11",
 			expected: http.StatusCreated,
 		},
 	}
@@ -186,6 +197,8 @@ func TestZoneRoute_Delete(t *testing.T) {
 }
 
 func TestZoneRoute_List(t *testing.T) {
+	defer TearDown()
+
 	tests := []struct {
 		name               string
 		input              string
@@ -194,8 +207,8 @@ func TestZoneRoute_List(t *testing.T) {
 	}{
 		{
 			name:               "valid input",
-			input:              `{"data": {"id":"01F1ZQZJXQXZJXZJXZJXZJXZJX", "type": "zones", "attributes": {"name": "martinez.io"}}}`,
-			expectedData:       []model.Zone{{ID: "01F1ZQZJXQXZJXZJXZJXZJXZJX", Name: "martinez.io"}},
+			input:              `{"data": {"id":"01GQ0MJ5N2X42FB43WC25XDE1A", "type": "zones", "attributes": {"name": "external.martinez.io"}}}`,
+			expectedData:       []model.Zone{{ID: "01GQ0MJ5N2X42FB43WC25XDE1A", Name: "external.martinez.io"}},
 			expectedStatusCode: http.StatusOK,
 		},
 	}
@@ -227,6 +240,8 @@ func TestZoneRoute_List(t *testing.T) {
 }
 
 func TestZonedRoute_GetBackend(t *testing.T) {
+	defer TearDown()
+
 	tests := []struct {
 		name               string
 		input              string
@@ -239,12 +254,12 @@ func TestZonedRoute_GetBackend(t *testing.T) {
 	}{
 		{
 			name:               "valid input",
-			input:              `{"data": {"id":"01F1ZQZJXQXZJXZJXZJXZJXZJX", "type": "zones", "attributes": {"name": "martinez.io"}}}`,
-			zoneInput:          `{"data": {"id":"01F1ZQZJXQXZJXZJXZJXZJZONE", "type": "backends", "attributes": {"name": "nsd"}}}`,
-			payload:            `{"data": {"id":"01F1ZQZJXQXZJXZJXZJXZJZONE", "type": "backends"}}`,
+			input:              `{"data": {"id":"01F1ZQZJXQXZJXZJXZJXZJXZJX", "type": "zones", "attributes": {"name": "internal.martinez.io"}}}`,
+			zoneInput:          `{"data": {"id":"01F1ZQZJXQXZJXZJXZJXZJBACK", "type": "backends", "attributes": {"name": "nsd"}}}`,
+			payload:            `{"data": {"id":"01F1ZQZJXQXZJXZJXZJXZJBACK", "type": "backends"}}`,
 			id:                 "01F1ZQZJXQXZJXZJXZJXZJXZJX",
-			zoneID:             "01F1ZQZJXQXZJXZJXZJXZJZONE",
-			expectedData:       &model.Backend{ID: "01F1ZQZJXQXZJXZJXZJXZJZONE", Name: "nsd"},
+			zoneID:             "01F1ZQZJXQXZJXZJXZJXZJZBACK",
+			expectedData:       &model.Backend{ID: "01F1ZQZJXQXZJXZJXZJXZJBACK", Name: "nsd"},
 			expectedStatusCode: http.StatusOK,
 		},
 	}
@@ -278,10 +293,10 @@ func TestZonedRoute_GetBackend(t *testing.T) {
 			c.SetParamValues(test.id)
 			if assert.NoError(t, routeZone.GetBackends(c)) {
 				assert.Equal(t, http.StatusOK, recGet.Code)
-				var zones []model.Zone
-				assert.NoError(t, jsonapi.Unmarshal(recGet.Body.Bytes(), &zones))
-				assert.Equal(t, test.expectedData.ID, zones[0].ID)
-				assert.Equal(t, test.expectedData.Name, zones[0].Name)
+				var backends []model.Backend
+				assert.NoError(t, jsonapi.Unmarshal(recGet.Body.Bytes(), &backends))
+				assert.Equal(t, test.expectedData.ID, backends[0].ID)
+				assert.Equal(t, test.expectedData.Name, backends[0].Name)
 			}
 		})
 	}

@@ -49,5 +49,7 @@ func Close() error {
 		return err
 	}
 
+	database = nil
+
 	return sqlDB.Close()
 }
