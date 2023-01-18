@@ -61,18 +61,22 @@ func (r *ZoneRoute) List(c echo.Context) (err error) {
 
 // Update updates a zone
 func (r *ZoneRoute) Update(c echo.Context) (err error) {
-	var zone model.Zone
-	err = r.db.First(&zone, "id = ?", c.Param("id")).Error
+	zone := &model.Zone{ID: c.Param("id")}
+	err = zone.Get(r.db, false)
 	if err != nil {
+		if err.Error() == "record not found" {
+			return c.String(http.StatusNotFound, "Zone not found")
+		}
 		return err
 	}
-	if zone.ID == "" {
-		return c.String(http.StatusNotFound, "Zone not found")
-	}
-	if err := c.Bind(&zone); err != nil {
+	newZone := &model.Zone{}
+	if err := c.Bind(newZone); err != nil {
 		return err
 	}
-	r.db.Model(&zone).Updates(&zone)
+	if (newZone == nil) || (newZone.Name == "") {
+		return c.String(http.StatusBadRequest, "Name is required")
+	}
+	r.db.Model(&zone).Updates(&newZone)
 	return JSONAPI(c, http.StatusOK, zone)
 }
 

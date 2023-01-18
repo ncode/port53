@@ -65,20 +65,21 @@ func (r *BackendRoute) List(c echo.Context) (err error) {
 // Update updates a backend
 func (r *BackendRoute) Update(c echo.Context) (err error) {
 	backend := &model.Backend{ID: c.Param("id")}
-	err = backend.Get(r.db, true)
+	err = backend.Get(r.db, false)
 	if err != nil {
 		if err.Error() == "record not found" {
 			return c.String(http.StatusNotFound, "Backend not found")
 		}
 		return err
 	}
-	if err := c.Bind(&backend); err != nil {
+	newBackend := &model.Backend{}
+	if err := c.Bind(newBackend); err != nil {
 		return err
 	}
-	if backend.Name == "" {
+	if (newBackend == nil) || (newBackend.Name == "") {
 		return c.String(http.StatusBadRequest, "Name is required")
 	}
-	r.db.Model(&backend).Updates(&backend)
+	r.db.Model(&backend).Updates(&newBackend)
 	return JSONAPI(c, http.StatusOK, backend)
 }
 
