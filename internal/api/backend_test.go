@@ -238,6 +238,64 @@ func TestBackendRoute_List(t *testing.T) {
 	}
 }
 
+func TestBackendRoute_Update(t *testing.T) {
+	defer TearDown()
+
+	tests := []struct {
+		name               string
+		input              string
+		payload            string
+		id                 string
+		expectedData       *model.Backend
+		expectedStatusCode int
+	}{
+		{
+			name:               "valid input",
+			input:              `{"data": {"id":"01F1ZQZJXQXZJXZJXZJXZJXZJX", "type": "backends", "attributes": {"name": "bind"}}}`,
+			payload:            `{"data": {"id":"01F1ZQZJXQXZJXZJXZJXZJXZJX", "type": "backends", "attributes": {"name": "nsd"}}}`,
+			id:                 "01F1ZQZJXQXZJXZJXZJXZJXZJX",
+			expectedData:       &model.Backend{ID: "01F1ZQZJXQXZJXZJXZJXZJXZJX", Name: "nsd"},
+			expectedStatusCode: http.StatusOK,
+		},
+		{
+			name:               "invalid input",
+			input:              `{"data": {"id":"01F1ZQZJXQXZJXZJXZJXZJXZJX", "type": "backends", "attributes": {"name": "bind"}}}`,
+			payload:            `{"data": {"type": "backends"}}`,
+			id:                 "01F1ZQZJXQXZJXZJXZJXZJXZJX",
+			expectedStatusCode: http.StatusBadRequest,
+		},
+	}
+	e := echo.New()
+	e.Binder = &binder.JsonApiBinder{}
+
+	db, err := database.Database()
+	if err != nil {
+		panic(err)
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			routeBackend := &BackendRoute{db: db}
+			c, _ := postTestRequest("/v1/backends", test.input, e)
+			err = routeBackend.Create(c)
+			assert.NoError(t, err)
+
+			c, recPatch := patchTestRequest("/v1/backends/:id", test.payload, e)
+			c.SetParamNames("id")
+			c.SetParamValues(test.id)
+			if assert.NoError(t, routeBackend.Update(c)) {
+				assert.Equal(t, test.expectedStatusCode, recPatch.Code)
+				if test.expectedData != nil {
+					var backend model.Backend
+					assert.NoError(t, jsonapi.Unmarshal(recPatch.Body.Bytes(), &backend))
+					assert.Equal(t, test.expectedData.ID, backend.ID)
+				}
+
+			}
+		})
+	}
+}
+
 func TestBackendRoute_UpdateZone(t *testing.T) {
 	defer TearDown()
 
