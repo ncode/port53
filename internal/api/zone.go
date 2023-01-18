@@ -137,6 +137,9 @@ func (r *ZoneRoute) AddBackend(c echo.Context) (err error) {
 		}
 		return err
 	}
+	if backend.ID == "" {
+		return c.String(http.StatusBadRequest, "Backend ID is required")
+	}
 	existingBackend := model.Backend{ID: backend.ID}
 	err = existingBackend.Get(r.db, false)
 	if err != nil && err.Error() == "record not found" {
@@ -149,8 +152,8 @@ func (r *ZoneRoute) AddBackend(c echo.Context) (err error) {
 	if err != nil {
 		return err
 	}
-	r.db.Find(&zone, "id = ?", zone.ID)
-	return JSONAPI(c, http.StatusOK, zone)
+	r.db.Find(&backend, "id = ?", backend.ID)
+	return JSONAPI(c, http.StatusOK, backend)
 }
 
 func (r *ZoneRoute) Register(e *echo.Echo) {
@@ -161,7 +164,7 @@ func (r *ZoneRoute) Register(e *echo.Echo) {
 	e.GET("/v1/zones", r.List)
 	// Relationships
 	e.GET("/v1/zones/:id/backends", r.GetBackends)
-	//e.POST("/v1/backends/:id/backends", r.AddBackend)
+	e.POST("/v1/backends/:id/backends", r.AddBackend)
 	//e.PATCH("/v1/backends/:id/backends", r.UpdateBackends)
 	//e.DELETE("/v1/backends/:id/backends", r.RemoveBackend)
 }
