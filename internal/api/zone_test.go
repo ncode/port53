@@ -196,6 +196,64 @@ func TestZoneRoute_Delete(t *testing.T) {
 	}
 }
 
+func TestZoneRoute_Update(t *testing.T) {
+	defer TearDown()
+
+	tests := []struct {
+		name               string
+		input              string
+		payload            string
+		id                 string
+		expectedData       *model.Zone
+		expectedStatusCode int
+	}{
+		{
+			name:               "valid input",
+			input:              `{"data": {"id":"01F1ZQZJXQXZJXZJXZJXZJXZJX", "type": "zones", "attributes": {"name": "martinez.io"}}}`,
+			payload:            `{"data": {"id":"01F1ZQZJXQXZJXZJXZJXZJXZJX", "type": "zones", "attributes": {"name": "home.martinez.io"}}}`,
+			id:                 "01F1ZQZJXQXZJXZJXZJXZJXZJX",
+			expectedData:       &model.Zone{ID: "01F1ZQZJXQXZJXZJXZJXZJXZJX", Name: "home.martinez.io"},
+			expectedStatusCode: http.StatusOK,
+		},
+		{
+			name:               "invalid input",
+			input:              `{"data": {"id":"01F1ZQZJXQXZJXZJXZJXZJXZJX", "type": "zones", "attributes": {"name": "martinez.io"}}}`,
+			payload:            `{"data": {"type": "zones"}}`,
+			id:                 "01F1ZQZJXQXZJXZJXZJXZJXZJX",
+			expectedStatusCode: http.StatusBadRequest,
+		},
+	}
+	e := echo.New()
+	e.Binder = &binder.JsonApiBinder{}
+
+	db, err := database.Database()
+	if err != nil {
+		panic(err)
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			routeZone := &ZoneRoute{db: db}
+			c, _ := postTestRequest("/v1/zones", test.input, e)
+			err = routeZone.Create(c)
+			assert.NoError(t, err)
+
+			c, recPatch := patchTestRequest("/v1/zones/:id", test.payload, e)
+			c.SetParamNames("id")
+			c.SetParamValues(test.id)
+			if assert.NoError(t, routeZone.Update(c)) {
+				assert.Equal(t, test.expectedStatusCode, recPatch.Code)
+				if test.expectedData != nil {
+					var zone model.Zone
+					assert.NoError(t, jsonapi.Unmarshal(recPatch.Body.Bytes(), &zone))
+					assert.Equal(t, test.expectedData.ID, zone.ID)
+				}
+
+			}
+		})
+	}
+}
+
 func TestZoneRoute_List(t *testing.T) {
 	defer TearDown()
 
