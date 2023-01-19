@@ -443,3 +443,108 @@ func TestZoneRoute_AddBackend(t *testing.T) {
 		})
 	}
 }
+
+func TestZoneRoute_RemoveBackend(t *testing.T) {
+	defer TearDown()
+
+	tests := []struct {
+		name               string
+		input              string
+		backendInput       string
+		payload            string
+		deletePayload      string
+		id                 string
+		BackendID          string
+		expectedData       *model.Backend
+		expectedStatusCode int
+	}{
+		{
+			name:               "delete without any lasting zone",
+			input:              `{"data": {"id":"01F1ZQZJXQXZJXZJXZJXZJXZJX", "type": "zones", "attributes": {"name": "martinez.io"}}}`,
+			backendInput:       `{"data": {"id":"01F1ZQZJXQXZJXZJXZJXZJZONE", "type": "backends", "attributes": {"name": "nsd"}}}`,
+			payload:            `{"data": {"id":"01F1ZQZJXQXZJXZJXZJXZJZONE", "type": "backends"}}`,
+			deletePayload:      `{"data": {"id":"01F1ZQZJXQXZJXZJXZJXZJZONE", "type": "backends"}}`,
+			id:                 "01F1ZQZJXQXZJXZJXZJXZJXZJX",
+			BackendID:          "01F1ZQZJXQXZJXZJXZJXZJZONE",
+			expectedData:       &model.Backend{ID: "01F1ZQZJXQXZJXZJXZJXZJZONE", Name: "nsd"},
+			expectedStatusCode: http.StatusNoContent,
+		},
+		{
+			name:               "delete with zone left",
+			input:              `{"data": {"id":"01F1ZQZJXQXZJXZJXZJXZJXZJX", "type": "zones", "attributes": {"name": "martinez.io"}}}`,
+			backendInput:       `{"data": {"id":"01F1ZQZJXQXZJXZJXZJXZJZONE", "type": "backends", "attributes": {"name": "nsd"}}}`,
+			payload:            `{"data": {"id":"01F1ZQZJXQXZJXZJXZJXZJZONE", "type": "backends"}}`,
+			deletePayload:      `{"data": {"id":"01F1ZQZJXQXZJXZJXZJXZJlALA", "type": "backends"}}`,
+			id:                 "01F1ZQZJXQXZJXZJXZJXZJXZJX",
+			BackendID:          "01F1ZQZJXQXZJXZJXZJXZJZONE",
+			expectedData:       &model.Backend{ID: "01F1ZQZJXQXZJXZJXZJXZJZONE", Name: "nsd"},
+			expectedStatusCode: http.StatusOK,
+		},
+		{
+			name:               "invalid input",
+			input:              `{"data": {"id":"01F1ZQZJXQXZJXZJXZJXZJXZJX", "type": "zones", "attributes": {"name": "martinez.io"}}}`,
+			backendInput:       `{"data": {"id":"01F1ZQZJXQXZJXZJXZJXZJZONE", "type": "backends", "attributes": {"name": "nsd"}}}`,
+			payload:            `{"data": {"id":"01F1ZQZJXQXZJXZJXZJXZJZONE", "type": "backends"}}`,
+			deletePayload:      `{"data": null }`,
+			id:                 "01F1ZQZJXQXZJXZJXZJXZJXZJX",
+			BackendID:          "01F1ZQZJXQXZJXZJXZJXZJZONE",
+			expectedData:       &model.Backend{ID: "01F1ZQZJXQXZJXZJXZJXZJZONE", Name: "nsd"},
+			expectedStatusCode: http.StatusBadRequest,
+		},
+	}
+	e := echo.New()
+	e.Binder = &binder.JsonApiBinder{}
+
+	db, err := database.Database()
+	if err != nil {
+		panic(err)
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			routeZone := &ZoneRoute{db: db}
+			c, _ := postTestRequest("/v1/zones", test.input, e)
+			err = routeZone.Create(c)
+			assert.NoError(t, err)
+
+			routeBackend := &BackendRoute{db: db}
+			c, _ = postTestRequest("/v1/backends", test.backendInput, e)
+			err = routeBackend.Create(c)
+			assert.NoError(t, err)
+
+			c, _ = postTestRequest("/v1/zones/:id/backends", test.payload, e)
+			c.SetParamNames("id")
+			c.SetParamValues(test.id)
+			assert.NoError(t, routeZone.AddBackend(c))
+
+			c, recGet := getTestRequest("/v1/zones/:id/backends", e)
+			c.SetParamNames("id")
+			c.SetParamValues(test.id)
+			if assert.NoError(t, routeZone.GetBackends(c)) {
+				assert.Equal(t, http.StatusOK, recGet.Code)
+				var backends []model.Backend
+				assert.NoError(t, jsonapi.Unmarshal(recGet.Body.Bytes(), &backends))
+				assert.Equal(t, test.expectedData.ID, backends[0].ID)
+				assert.Equal(t, test.expectedData.Name, backends[0].Name)
+			}
+
+			c, recDelete := deleteTestRequest("/v1/zones/:id/backends", test.deletePayload, e)
+			c.SetParamNames("id")
+			c.SetParamValues(test.id)
+			if assert.NoError(t, routeZone.RemoveBackend(c)) {
+				assert.Equal(t, test.expectedStatusCode, recDelete.Code)
+			}
+
+			c, recGet = getTestRequest("/v1/zones/:id/backends", e)
+			c.SetParamNames("id")
+			c.SetParamValues(test.id)
+			if assert.NoError(t, routeZone.GetBackends(c)) {
+				if test.expectedStatusCode == http.StatusNoContent {
+					assert.Equal(t, http.StatusNotFound, recGet.Code)
+				} else {
+					assert.Equal(t, http.StatusOK, recGet.Code)
+				}
+			}
+		})
+	}
+}
