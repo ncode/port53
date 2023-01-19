@@ -119,7 +119,7 @@ func (r *ZoneRoute) GetBackends(c echo.Context) (err error) {
 		return err
 	}
 	if len(zone.Backends) == 0 {
-		return JSONAPI(c, http.StatusOK, nil)
+		return JSONAPI(c, http.StatusNotFound, nil)
 	}
 	return JSONAPI(c, http.StatusOK, zone.Backends)
 }
@@ -160,6 +160,40 @@ func (r *ZoneRoute) AddBackend(c echo.Context) (err error) {
 	return JSONAPI(c, http.StatusOK, backend)
 }
 
+// RemoveBackend removes a backend from a zone
+func (r *ZoneRoute) RemoveBackend(c echo.Context) (err error) {
+	zone := &model.Zone{ID: c.Param("id")}
+	err = zone.Get(r.db, false)
+	if err != nil {
+		if err.Error() == "record not found" {
+			return c.String(http.StatusNotFound, "Zone not found")
+		}
+		return err
+	}
+	var backend model.Backend
+	if err := c.Bind(&backend); err != nil {
+		if strings.Contains(err.Error(), "body is not a json:api representation") {
+			return c.String(http.StatusBadRequest, "Backend ID is required")
+		}
+		return err
+	}
+	if backend.ID == "" {
+		return c.String(http.StatusBadRequest, "Backend ID is required")
+	}
+	err = zone.RemoveBackend(r.db, &backend)
+	if err != nil {
+		return err
+	}
+	err = zone.Get(r.db, true)
+	if err != nil {
+		return err
+	}
+	if len(zone.Backends) == 0 {
+		return c.String(http.StatusNoContent, "Zone doesn't have any backends")
+	}
+	return JSONAPI(c, http.StatusOK, zone.Backends)
+}
+
 func (r *ZoneRoute) Register(e *echo.Echo) {
 	e.GET("/v1/zones/:id", r.Get)
 	e.DELETE("/v1/zones/:id", r.Delete)
@@ -168,7 +202,7 @@ func (r *ZoneRoute) Register(e *echo.Echo) {
 	e.GET("/v1/zones", r.List)
 	// Relationships
 	e.GET("/v1/zones/:id/backends", r.GetBackends)
-	e.POST("/v1/backends/:id/backends", r.AddBackend)
+	e.POST("/v1/zones/:id/backends", r.AddBackend)
 	//e.PATCH("/v1/backends/:id/backends", r.UpdateBackends)
-	//e.DELETE("/v1/backends/:id/backends", r.RemoveBackend)
+	e.DELETE("/v1/zones/:id/backends", r.RemoveBackend)
 }

@@ -71,3 +71,23 @@ func (z *Zone) AddBackend(db *gorm.DB, backend *Backend) (err error) {
 		return nil
 	})
 }
+
+func (z *Zone) RemoveBackend(db *gorm.DB, backend *Backend) (err error) {
+	return db.Transaction(func(tx *gorm.DB) error {
+		err = tx.Model(z).Association("Backends").Delete(backend)
+		if err != nil {
+			return err
+		}
+		return nil
+	})
+}
+
+func (z *Zone) ReplaceBackends(db *gorm.DB, backends []*Backend) (err error) {
+	return db.Transaction(func(tx *gorm.DB) error {
+		err = tx.Model(z).Association("Backends").Replace(backends)
+		if err != nil {
+			return err
+		}
+		return nil
+	})
+}

@@ -157,14 +157,13 @@ func (r *BackendRoute) AddZone(c echo.Context) (err error) {
 	if err != nil {
 		return err
 	}
-	r.db.Find(&zone, "id = ?", zone.ID)
-	return JSONAPI(c, http.StatusOK, zone)
+	return JSONAPI(c, http.StatusOK, existingZone)
 }
 
 // RemoveZone removes a zone from a backend
 func (r *BackendRoute) RemoveZone(c echo.Context) (err error) {
 	backend := &model.Backend{ID: c.Param("id")}
-	err = backend.Get(r.db, true)
+	err = backend.Get(r.db, false)
 	if err != nil {
 		if err.Error() == "record not found" {
 			return c.String(http.StatusNotFound, "Backend not found")
@@ -181,12 +180,11 @@ func (r *BackendRoute) RemoveZone(c echo.Context) (err error) {
 	if zone.ID == "" {
 		return c.String(http.StatusBadRequest, "Zone ID is required")
 	}
-	err = r.db.Model(&backend).Association("Zones").Delete(&zone)
+	err = backend.RemoveZone(r.db, &zone)
 	if err != nil {
 		return err
 	}
-	var existingBackend model.Backend
-	err = r.db.Preload("Zones").First(&existingBackend, "id = ?", c.Param("id")).Error
+	err = backend.Get(r.db, true)
 	if err != nil {
 		return err
 	}
@@ -229,7 +227,7 @@ func (r *BackendRoute) UpdateZones(c echo.Context) (err error) {
 			return c.String(http.StatusBadRequest, "Zone ID is required")
 		}
 	}
-	existingZones := make([]model.Zone, 0)
+	existingZones := make([]*model.Zone, 0)
 	err = r.db.Find(&existingZones, "id IN (?)", ids).Error
 	if err != nil {
 		return err
@@ -237,7 +235,7 @@ func (r *BackendRoute) UpdateZones(c echo.Context) (err error) {
 	if len(existingZones) == 0 || len(existingZones) != len(zones) {
 		return c.String(http.StatusNotFound, "All zones must exist")
 	}
-	err = r.db.Model(&backend).Association("Zones").Replace(existingZones)
+	err = backend.ReplaceZones(r.db, existingZones)
 	if err != nil {
 		return err
 	}
