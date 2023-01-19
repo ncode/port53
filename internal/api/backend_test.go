@@ -611,7 +611,7 @@ func TestBackendRoute_RemoveZone(t *testing.T) {
 				assert.Equal(t, test.expectedData.Name, zones[0].Name)
 			}
 
-			c, recDelete := deleteTestRequest("/v1/backends/:id", test.deletePayload, e)
+			c, recDelete := deleteTestRequest("/v1/backends/:id/zones", test.deletePayload, e)
 			c.SetParamNames("id")
 			c.SetParamValues(test.id)
 			if assert.NoError(t, routeBackend.RemoveZone(c)) {
