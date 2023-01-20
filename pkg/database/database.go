@@ -11,6 +11,7 @@ import (
 
 var database *gorm.DB
 
+// Database returns a database connection
 func Database() (db *gorm.DB, err error) {
 	if database != nil {
 		return database, err
@@ -39,6 +40,7 @@ func Database() (db *gorm.DB, err error) {
 	return database, err
 }
 
+// Close closes the database connection
 func Close() error {
 	if database == nil {
 		return nil

@@ -10,6 +10,7 @@ import (
 	"github.com/spf13/viper"
 )
 
+// Server is the main entry point for the API
 func Server() {
 	e := echo.New()
 

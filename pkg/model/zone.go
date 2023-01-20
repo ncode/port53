@@ -28,12 +28,14 @@ type Zone struct {
 	Backends  []*Backend     `gorm:"many2many:backend_zones;" jsonapi:"relationship" json:"backends,omitempty"`
 }
 
+// Link returns the link to the resource
 func (z *Zone) Link() *jsonapi.Link {
 	return &jsonapi.Link{
 		Self: fmt.Sprintf("%s/v1/zones/%s", viper.GetString("serviceUrl"), z.ID),
 	}
 }
 
+// LinkRelation returns the link to the related resource
 func (z *Zone) LinkRelation(relation string) *jsonapi.Link {
 	return &jsonapi.Link{
 		Self:    fmt.Sprintf("%s/v1/zones/%s/relationships/%s", viper.GetString("serviceUrl"), z.ID, relation),
@@ -41,6 +43,7 @@ func (z *Zone) LinkRelation(relation string) *jsonapi.Link {
 	}
 }
 
+// BeforeCreate generates a new ULID for the zone if needed
 func (z *Zone) BeforeCreate(tx *gorm.DB) (err error) {
 	if z.ID == "" {
 		z.ID = ulid.Make().String()
@@ -50,6 +53,7 @@ func (z *Zone) BeforeCreate(tx *gorm.DB) (err error) {
 	return err
 }
 
+// Get a zone
 func (z *Zone) Get(db *gorm.DB, preload bool) (err error) {
 	if preload {
 		return db.Preload("Records").Preload("Backends").First(z, "id = ?", z.ID).Error
@@ -57,6 +61,7 @@ func (z *Zone) Get(db *gorm.DB, preload bool) (err error) {
 	return db.First(z, "id = ?", z.ID).Error
 }
 
+// Delete a zone
 func (z *Zone) Delete(db *gorm.DB) (err error) {
 	return db.Delete(&z).Error
 }
@@ -72,6 +77,7 @@ func (z *Zone) AddBackend(db *gorm.DB, backend *Backend) (err error) {
 	})
 }
 
+// RemoveBackend removes a backend from the zone
 func (z *Zone) RemoveBackend(db *gorm.DB, backend *Backend) (err error) {
 	return db.Transaction(func(tx *gorm.DB) error {
 		err = tx.Model(z).Association("Backends").Delete(backend)
@@ -82,6 +88,7 @@ func (z *Zone) RemoveBackend(db *gorm.DB, backend *Backend) (err error) {
 	})
 }
 
+// ReplaceBackends replaces all backends of the zone
 func (z *Zone) ReplaceBackends(db *gorm.DB, backends []*Backend) (err error) {
 	return db.Transaction(func(tx *gorm.DB) error {
 		err = tx.Model(z).Association("Backends").Replace(backends)

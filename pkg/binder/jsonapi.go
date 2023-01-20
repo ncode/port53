@@ -12,6 +12,7 @@ const MIMEApplicationJSONApi string = "application/vnd.api+json"
 
 type JsonApiBinder struct{}
 
+// Bind implements the Binder interface.
 func (j *JsonApiBinder) Bind(i interface{}, c echo.Context) (err error) {
 	ctype := c.Request().Header.Get(echo.HeaderContentType)
 	if ctype != MIMEApplicationJSONApi {

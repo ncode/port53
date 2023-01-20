@@ -245,6 +245,7 @@ func (r *ZoneRoute) UpdateBackends(c echo.Context) (err error) {
 	return JSONAPI(c, http.StatusOK, existingBackends)
 }
 
+// Register registers the routes
 func (r *ZoneRoute) Register(e *echo.Echo) {
 	e.GET("/v1/zones/:id", r.Get)
 	e.DELETE("/v1/zones/:id", r.Delete)

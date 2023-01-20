@@ -29,6 +29,7 @@ type Page struct {
 	Limit  int
 }
 
+// ParseQuery parses a query string into a Query struct
 func ParseQuery(c echo.Context) (*Query, error) {
 	query := &Query{
 		Includes: make(map[string]*Include),
