@@ -240,7 +240,6 @@ func (r *BackendRoute) UpdateZones(c echo.Context) (err error) {
 		return err
 	}
 	return JSONAPI(c, http.StatusOK, existingZones)
-
 }
 
 // Register registers the routes for the backend

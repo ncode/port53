@@ -22,12 +22,14 @@ type Record struct {
 	ZoneID    string         `gorm:"foreignKey:ZoneID" jsonapi:"relationship" json:"zone,omitempty"`
 }
 
+// Link returns the link to the resource
 func (r *Record) Link() *jsonapi.Link {
 	return &jsonapi.Link{
 		Self: fmt.Sprintf("%s/v1/records/%s", viper.GetString("serviceUrl"), r.ID),
 	}
 }
 
+// LinkRelation returns the link to the related resource
 func (r *Record) LinkRelation(relation string) *jsonapi.Link {
 	return &jsonapi.Link{
 		Self:    fmt.Sprintf("%s/v1/records/%s/relationships/%s", viper.GetString("serviceUrl"), r.ID, relation),
@@ -35,6 +37,7 @@ func (r *Record) LinkRelation(relation string) *jsonapi.Link {
 	}
 }
 
+// BeforeCreate generates a new ULID for the record if needed
 func (r *Record) BeforeCreate(tx *gorm.DB) (err error) {
 	if r.ID == "" {
 		r.ID = ulid.Make().String()

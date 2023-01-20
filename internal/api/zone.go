@@ -1,7 +1,9 @@
 package api
 
 import (
+	"bytes"
 	"fmt"
+	"io"
 	"net/http"
 	"strings"
 
@@ -194,6 +196,56 @@ func (r *ZoneRoute) RemoveBackend(c echo.Context) (err error) {
 	return JSONAPI(c, http.StatusOK, zone.Backends)
 }
 
+// UpdateBackends updates backends for a zone
+func (r *ZoneRoute) UpdateBackends(c echo.Context) (err error) {
+	zone := &model.Zone{ID: c.Param("id")}
+	err = zone.Get(r.db, true)
+	if err != nil {
+		if err.Error() == "record not found" {
+			return c.String(http.StatusNotFound, "Backend not found")
+		}
+		return err
+	}
+	var backends []model.Backend
+	if err := c.Bind(&backends); err != nil {
+		if strings.Contains(err.Error(), "body is not a json:api representation") {
+			if body, err := io.ReadAll(c.Request().Body); err == nil {
+				// This feel like a bug. Not 100% sure yet.
+				if bytes.Equal(body, []byte("")) {
+					err = r.db.Model(&zone).Association("Backends").Clear()
+					if err != nil {
+						return err
+					}
+					return c.String(http.StatusNoContent, "Removed all backends from zone")
+				}
+			}
+		}
+		return err
+	}
+
+	var ids []string
+	for _, backend := range backends {
+		ids = append(ids, backend.ID)
+		if backend.ID == "" {
+			return c.String(http.StatusBadRequest, "Backend ID is required")
+		}
+	}
+	existingBackends := make([]*model.Backend, 0)
+	err = r.db.Find(&existingBackends, "id IN (?)", ids).Error
+	if err != nil {
+		return err
+	}
+	if len(existingBackends) == 0 || len(existingBackends) != len(backends) {
+		return c.String(http.StatusNotFound, "All backends must exist")
+	}
+	err = zone.ReplaceBackends(r.db, existingBackends)
+	if err != nil {
+		return err
+	}
+	return JSONAPI(c, http.StatusOK, existingBackends)
+}
+
+// Register registers the routes
 func (r *ZoneRoute) Register(e *echo.Echo) {
 	e.GET("/v1/zones/:id", r.Get)
 	e.DELETE("/v1/zones/:id", r.Delete)
@@ -203,6 +255,6 @@ func (r *ZoneRoute) Register(e *echo.Echo) {
 	// Relationships
 	e.GET("/v1/zones/:id/backends", r.GetBackends)
 	e.POST("/v1/zones/:id/backends", r.AddBackend)
-	//e.PATCH("/v1/backends/:id/backends", r.UpdateBackends)
+	e.PATCH("/v1/backends/:id/backends", r.UpdateBackends)
 	e.DELETE("/v1/zones/:id/backends", r.RemoveBackend)
 }

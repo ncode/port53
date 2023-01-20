@@ -548,3 +548,86 @@ func TestZoneRoute_RemoveBackend(t *testing.T) {
 		})
 	}
 }
+
+func TestZoneRoute_UpdateBackends(t *testing.T) {
+	defer TearDown()
+
+	tests := []struct {
+		name               string
+		input              string
+		zoneInput          string
+		payload            string
+		id                 string
+		backendID          string
+		expectedData       *model.Backend
+		expectedStatusCode int
+	}{
+		{
+			name:               "valid input",
+			input:              `{"data": {"id":"01F1ZQZJXQXZJXZJXZJXZJXZJX", "type": "zones", "attributes": {"name": "martinez.io"}}}`,
+			zoneInput:          `{"data": {"id":"01F1ZQZJXQXZJXZJXZJXZJZONE", "type": "backends", "attributes": {"name": "bind"}}}`,
+			payload:            `{"data": [{"id":"01F1ZQZJXQXZJXZJXZJXZJZONE", "type": "backends"}]}`,
+			id:                 "01F1ZQZJXQXZJXZJXZJXZJXZJX",
+			backendID:          "01F1ZQZJXQXZJXZJXZJXZJZONE",
+			expectedData:       &model.Backend{ID: "01F1ZQZJXQXZJXZJXZJXZJXZJX", Name: "bind"},
+			expectedStatusCode: http.StatusOK,
+		},
+		{
+			name:               "invalid input",
+			input:              `{"data": {"id":"01F1ZQZJXQXZJXZJXZJXZJXZJX", "type": "zones", "attributes": {"name": "martinez.io"}}}`,
+			zoneInput:          `{"data": {"id":"01F1ZQZJXQXZJXZJXZJXZJZONE", "type": "backends", "attributes": {"name": "bind"}}}`,
+			payload:            `{"data": [{"type": "backends"}]}`,
+			id:                 "01F1ZQZJXQXZJXZJXZJXZJXZJX",
+			expectedStatusCode: http.StatusBadRequest,
+		},
+		{
+			name:               "nonexistent zone",
+			input:              `{"data": {"id":"01F1ZQZJXQXZJXZJXZJXZJXZJX", "type": "zones", "attributes": {"name": "martinez.io"}}}`,
+			zoneInput:          `{"data": {"id":"01F1ZQZJXQXZJXZJXZJXZJZONE", "type": "backends", "attributes": {"name": "bind"}}}`,
+			payload:            `{"data": [{"id":"01F1ZQZJXQXZJXZJXZJXZJLALA", "type": "backends"}]}`,
+			id:                 "01F1ZQZJXQXZJXZJXZJXZJXZJX",
+			expectedStatusCode: http.StatusNotFound,
+		},
+		{
+			name:               "remove zones from backend",
+			input:              `{"data": {"id":"01F1ZQZJXQXZJXZJXZJXZJXZJX", "type": "zones", "attributes": {"name": "martinez.io"}}}`,
+			zoneInput:          `{"data": {"id":"01F1ZQZJXQXZJXZJXZJXZJZONE", "type": "backends", "attributes": {"name": "bind"}}}`,
+			payload:            `{"data": []}`,
+			id:                 "01F1ZQZJXQXZJXZJXZJXZJXZJX",
+			expectedStatusCode: http.StatusNoContent,
+		},
+	}
+	e := echo.New()
+	e.Binder = &binder.JsonApiBinder{}
+
+	db, err := database.Database()
+	if err != nil {
+		panic(err)
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			routeZone := &ZoneRoute{db: db}
+			c, _ := postTestRequest("/v1/zones", test.input, e)
+			err = routeZone.Create(c)
+			assert.NoError(t, err)
+
+			routeBackend := &BackendRoute{db: db}
+			c, _ = postTestRequest("/v1/backends", test.zoneInput, e)
+			err = routeBackend.Create(c)
+			assert.NoError(t, err)
+
+			c, recPatch := patchTestRequest("/v1/zones/:id/backends", test.payload, e)
+			c.SetParamNames("id")
+			c.SetParamValues(test.id)
+			if assert.NoError(t, routeZone.UpdateBackends(c)) {
+				assert.Equal(t, test.expectedStatusCode, recPatch.Code)
+				if test.backendID != "" {
+					var backends []model.Backend
+					assert.NoError(t, jsonapi.Unmarshal(recPatch.Body.Bytes(), &backends))
+					assert.Equal(t, test.backendID, backends[0].ID)
+				}
+			}
+		})
+	}
+}
