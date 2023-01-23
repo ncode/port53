@@ -54,3 +54,13 @@ func (r *RecordRoute) List(c echo.Context) (err error) {
 	}
 	return JSONAPI(c, http.StatusOK, records)
 }
+
+// Get gets a record
+func (r *RecordRoute) Get(c echo.Context) (err error) {
+	record := model.Record{ID: c.Param("id")}
+	err = record.Get(r.db, true)
+	if err != nil {
+		return err
+	}
+	return JSONAPI(c, http.StatusOK, record)
+}
