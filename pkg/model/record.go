@@ -18,7 +18,7 @@ type Record struct {
 	Name      string         `gorm:"uniqueIndex;not null" jsonapi:"attribute" json:"name"`
 	TTL       int            `gorm:"default:3600" jsonapi:"attribute" json:"ttl"`
 	Type      string         `gorm:"not null" jsonapi:"attribute" json:"type"`
-	Data      string         `gorm:"not null" jsonapi:"attribute" json:"data"`
+	Content   string         `gorm:"not null" jsonapi:"attribute" json:"content"`
 	ZoneID    string         `gorm:"foreignKey:ZoneID" jsonapi:"relationship" json:"zone,omitempty"`
 }
 
