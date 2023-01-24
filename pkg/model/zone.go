@@ -61,6 +61,11 @@ func (z *Zone) Get(db *gorm.DB, preload bool) (err error) {
 	return db.First(z, "id = ?", z.ID).Error
 }
 
+// Update a zone
+func (z *Zone) Update(db *gorm.DB) (err error) {
+	return db.Save(&z).Error
+}
+
 // Delete a zone
 func (z *Zone) Delete(db *gorm.DB) (err error) {
 	return db.Delete(&z).Error
@@ -92,6 +97,39 @@ func (z *Zone) RemoveBackend(db *gorm.DB, backend *Backend) (err error) {
 func (z *Zone) ReplaceBackends(db *gorm.DB, backends []*Backend) (err error) {
 	return db.Transaction(func(tx *gorm.DB) error {
 		err = tx.Model(z).Association("Backends").Replace(backends)
+		if err != nil {
+			return err
+		}
+		return nil
+	})
+}
+
+// AddRecord adds a record to the zone
+func (z *Zone) AddRecord(db *gorm.DB, record *Record) (err error) {
+	return db.Transaction(func(tx *gorm.DB) error {
+		err = tx.Model(z).Association("Records").Append(record)
+		if err != nil {
+			return err
+		}
+		return nil
+	})
+}
+
+// RemoveRecord removes a record from the zone
+func (z *Zone) RemoveRecord(db *gorm.DB, record *Record) (err error) {
+	return db.Transaction(func(tx *gorm.DB) error {
+		err = tx.Model(z).Association("Records").Delete(record)
+		if err != nil {
+			return err
+		}
+		return nil
+	})
+}
+
+// ReplaceRecords replaces all records of the zone
+func (z *Zone) ReplaceRecords(db *gorm.DB, records []*Record) (err error) {
+	return db.Transaction(func(tx *gorm.DB) error {
+		err = tx.Model(z).Association("Records").Replace(records)
 		if err != nil {
 			return err
 		}

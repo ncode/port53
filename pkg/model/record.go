@@ -18,8 +18,9 @@ type Record struct {
 	Name      string         `gorm:"uniqueIndex;not null" jsonapi:"attribute" json:"name"`
 	TTL       int            `gorm:"default:3600" jsonapi:"attribute" json:"ttl"`
 	Type      string         `gorm:"not null" jsonapi:"attribute" json:"type"`
-	Data      string         `gorm:"not null" jsonapi:"attribute" json:"data"`
-	ZoneID    string         `gorm:"foreignKey:ZoneID" jsonapi:"relationship" json:"zone,omitempty"`
+	Content   string         `gorm:"not null" jsonapi:"attribute" json:"content"`
+	Zone      *Zone          `gorm:"-" jsonapi:"relationship" json:"zones"`
+	ZoneID    string         `gorm:"foreignKey:ZoneID" json:"-"`
 }
 
 // Link returns the link to the resource
@@ -45,4 +46,32 @@ func (r *Record) BeforeCreate(tx *gorm.DB) (err error) {
 		_, err = ulid.Parse(r.ID)
 	}
 	return err
+}
+
+// Get the record
+func (r *Record) Get(db *gorm.DB, preload bool) error {
+	if preload {
+		return db.Preload("Zone").First(r).Error
+	}
+	return db.First(r).Error
+}
+
+// Delete the record
+func (r *Record) Delete(db *gorm.DB) error {
+	return db.Delete(r).Error
+}
+
+// Update the record
+func (r *Record) Update(db *gorm.DB) error {
+	return db.Save(r).Error
+}
+
+// ReplaceZone replaces the zone of the record
+func (r *Record) ReplaceZone(db *gorm.DB, zone *Zone) error {
+	return db.Model(r).Association("Zone").Replace(zone)
+}
+
+// DeleteZone deletes the zone of the record
+func (r *Record) DeleteZone(db *gorm.DB) error {
+	return db.Model(r).Association("Zone").Clear()
 }
