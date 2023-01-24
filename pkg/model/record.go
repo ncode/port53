@@ -19,7 +19,8 @@ type Record struct {
 	TTL       int            `gorm:"default:3600" jsonapi:"attribute" json:"ttl"`
 	Type      string         `gorm:"not null" jsonapi:"attribute" json:"type"`
 	Content   string         `gorm:"not null" jsonapi:"attribute" json:"content"`
-	ZoneID    string         `gorm:"foreignKey:ZoneID" jsonapi:"relationship" json:"zone,omitempty"`
+	Zone      *Zone          `gorm:"-" jsonapi:"relationship" json:"zones"`
+	ZoneID    string         `gorm:"foreignKey:ZoneID" json:"-"`
 }
 
 // Link returns the link to the resource
