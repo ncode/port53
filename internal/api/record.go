@@ -23,6 +23,10 @@ func (r *RecordRoute) Create(c echo.Context) (err error) {
 	if record.Name == "" {
 		return c.String(http.StatusBadRequest, "Name is required")
 	}
+	if record.Zone == nil {
+		return c.String(http.StatusBadRequest, "Zone is required")
+	}
+	record.ZoneID = record.Zone.ID
 	err = r.db.Create(&record).Error
 	if err != nil {
 		if err.Error() == "UNIQUE constraint failed: " {
@@ -63,4 +67,17 @@ func (r *RecordRoute) Get(c echo.Context) (err error) {
 		return err
 	}
 	return JSONAPI(c, http.StatusOK, record)
+}
+
+// Register registers the routes
+func (r *RecordRoute) Register(e *echo.Echo) {
+	e.GET("/v1/records/:id", r.Get)
+	//e.DELETE("/v1/records/:id", r.Delete)
+	e.POST("/v1/records", r.Create)
+	//e.PATCH("/v1/records/:id", r.Update)
+	e.GET("/v1/records", r.List)
+	// Relationships
+	//e.GET("/v1/records/:id/zones", r.GetZone)
+	//e.PATCH("/v1/records/:id/zones", r.UpdateZone)
+	//e.DELETE("/v1/records/:id/zones", r.RemoveZone)
 }
