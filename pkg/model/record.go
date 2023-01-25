@@ -16,7 +16,7 @@ type Record struct {
 	UpdatedAt time.Time      `jsonapi:"attribute" json:"updated_at,omitempty"`
 	DeletedAt gorm.DeletedAt `gorm:"index" json:"-"`
 	Name      string         `gorm:"uniqueIndex;not null" jsonapi:"attribute" json:"name"`
-	TTL       int            `gorm:"default:3600" jsonapi:"attribute" json:"ttl"`
+	TTL       int            `gorm:"not null;default:3600" jsonapi:"attribute" json:"ttl"`
 	Type      string         `gorm:"not null" jsonapi:"attribute" json:"type"`
 	Content   string         `gorm:"not null" jsonapi:"attribute" json:"content"`
 	Zone      *Zone          `gorm:"-" jsonapi:"relationship" json:"zones"`

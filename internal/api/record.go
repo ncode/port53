@@ -3,6 +3,7 @@ package api
 import (
 	"fmt"
 	"net/http"
+	"strings"
 
 	"github.com/labstack/echo/v4"
 	"github.com/ncode/port53/pkg/model"
@@ -29,18 +30,7 @@ func (r *RecordRoute) Create(c echo.Context) (err error) {
 	record.ZoneID = record.Zone.ID
 	err = r.db.Create(&record).Error
 	if err != nil {
-		if err.Error() == "UNIQUE constraint failed: " {
-			// Here it's more complex than in the backend or zone route, because
-			// the record name is not unique, but the combination of name, type, zone and content
-			// TOD: fix this
-			var existingRecord model.Record
-			err = r.db.First(&existingRecord, "name = ?", record.Name).Error
-			if err != nil {
-				return err
-			}
-			c.Response().Header().Set(echo.HeaderLocation, fmt.Sprintf("%s/v1/records/%s", viper.GetString("serviceUrl"), existingRecord.ID))
-			return c.String(http.StatusConflict, "Record already exists")
-		} else if err.Error() == "UNIQUE constraint failed: recored.id" {
+		if strings.Contains(err.Error(), "UNIQUE constraint failed: ") {
 			c.Response().Header().Set(echo.HeaderLocation, fmt.Sprintf("%s/v1/records/%s", viper.GetString("serviceUrl"), record.ID))
 			return c.String(http.StatusConflict, "Record already exists")
 		}
