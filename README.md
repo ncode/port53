@@ -1,5 +1,6 @@
-[![codecov](https://codecov.io/gh/ncode/port53/branch/main/graph/badge.svg?token=S5Z0VTL3VY)](https://codecov.io/gh/ncode/port53)
+[![Go](https://github.com/ncode/port53/actions/workflows/go.yml/badge.svg)](https://github.com/ncode/port53/actions/workflows/go.yml)
 [![Go Report Card](https://goreportcard.com/badge/github.com/ncode/port53)](https://goreportcard.com/report/github.com/ncode/port53)
+[![codecov](https://codecov.io/gh/ncode/port53/branch/main/graph/badge.svg?token=S5Z0VTL3VY)](https://codecov.io/gh/ncode/port53)
 
 # Port53
 Dns management system
