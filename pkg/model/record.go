@@ -51,7 +51,12 @@ func (r *Record) BeforeCreate(tx *gorm.DB) (err error) {
 // Get the record
 func (r *Record) Get(db *gorm.DB, preload bool) error {
 	if preload {
-		return db.Preload("Zone").First(r).Error
+		err := db.First(r, "id = ?", r.ID).Error
+		if err != nil {
+			return err
+		}
+		r.Zone = &Zone{}
+		return db.First(r.Zone, "id = ?", r.ZoneID).Error
 	}
 	return db.First(r).Error
 }

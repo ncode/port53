@@ -42,7 +42,12 @@ func (r *RecordRoute) Create(c echo.Context) (err error) {
 // List lists all records
 func (r *RecordRoute) List(c echo.Context) (err error) {
 	var records []model.Record
-	err = r.db.Preload("Zone").Find(&records).Error
+	err = r.db.Find(&records).Error
+	for _, record := range records {
+		if err := record.Get(r.db, true); err != nil {
+			return err
+		}
+	}
 	if err != nil {
 		return err
 	}
@@ -54,6 +59,9 @@ func (r *RecordRoute) Get(c echo.Context) (err error) {
 	record := model.Record{ID: c.Param("id")}
 	err = record.Get(r.db, true)
 	if err != nil {
+		if err.Error() == "record not found" {
+			return c.String(http.StatusNotFound, "Record not found")
+		}
 		return err
 	}
 	return JSONAPI(c, http.StatusOK, record)
