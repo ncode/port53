@@ -3,6 +3,7 @@ package api
 import (
 	"fmt"
 	"net/http"
+	"strings"
 
 	"github.com/labstack/echo/v4"
 	"github.com/ncode/port53/pkg/model"
@@ -29,18 +30,7 @@ func (r *RecordRoute) Create(c echo.Context) (err error) {
 	record.ZoneID = record.Zone.ID
 	err = r.db.Create(&record).Error
 	if err != nil {
-		if err.Error() == "UNIQUE constraint failed: " {
-			// Here it's more complex than in the backend or zone route, because
-			// the record name is not unique, but the combination of name, type, zone and content
-			// TOD: fix this
-			var existingRecord model.Record
-			err = r.db.First(&existingRecord, "name = ?", record.Name).Error
-			if err != nil {
-				return err
-			}
-			c.Response().Header().Set(echo.HeaderLocation, fmt.Sprintf("%s/v1/records/%s", viper.GetString("serviceUrl"), existingRecord.ID))
-			return c.String(http.StatusConflict, "Record already exists")
-		} else if err.Error() == "UNIQUE constraint failed: recored.id" {
+		if strings.Contains(err.Error(), "UNIQUE constraint failed: ") {
 			c.Response().Header().Set(echo.HeaderLocation, fmt.Sprintf("%s/v1/records/%s", viper.GetString("serviceUrl"), record.ID))
 			return c.String(http.StatusConflict, "Record already exists")
 		}
@@ -52,7 +42,12 @@ func (r *RecordRoute) Create(c echo.Context) (err error) {
 // List lists all records
 func (r *RecordRoute) List(c echo.Context) (err error) {
 	var records []model.Record
-	err = r.db.Preload("Zone").Find(&records).Error
+	err = r.db.Find(&records).Error
+	for _, record := range records {
+		if err := record.Get(r.db, true); err != nil {
+			return err
+		}
+	}
 	if err != nil {
 		return err
 	}
@@ -64,6 +59,9 @@ func (r *RecordRoute) Get(c echo.Context) (err error) {
 	record := model.Record{ID: c.Param("id")}
 	err = record.Get(r.db, true)
 	if err != nil {
+		if err.Error() == "record not found" {
+			return c.String(http.StatusNotFound, "Record not found")
+		}
 		return err
 	}
 	return JSONAPI(c, http.StatusOK, record)

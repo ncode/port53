@@ -16,7 +16,7 @@ type Record struct {
 	UpdatedAt time.Time      `jsonapi:"attribute" json:"updated_at,omitempty"`
 	DeletedAt gorm.DeletedAt `gorm:"index" json:"-"`
 	Name      string         `gorm:"uniqueIndex;not null" jsonapi:"attribute" json:"name"`
-	TTL       int            `gorm:"default:3600" jsonapi:"attribute" json:"ttl"`
+	TTL       int            `gorm:"not null;default:3600" jsonapi:"attribute" json:"ttl"`
 	Type      string         `gorm:"not null" jsonapi:"attribute" json:"type"`
 	Content   string         `gorm:"not null" jsonapi:"attribute" json:"content"`
 	Zone      *Zone          `gorm:"-" jsonapi:"relationship" json:"zones"`
@@ -51,7 +51,12 @@ func (r *Record) BeforeCreate(tx *gorm.DB) (err error) {
 // Get the record
 func (r *Record) Get(db *gorm.DB, preload bool) error {
 	if preload {
-		return db.Preload("Zone").First(r).Error
+		err := db.First(r, "id = ?", r.ID).Error
+		if err != nil {
+			return err
+		}
+		r.Zone = &Zone{}
+		return db.First(r.Zone, "id = ?", r.ZoneID).Error
 	}
 	return db.First(r).Error
 }

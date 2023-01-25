@@ -1,6 +1,7 @@
 package api
 
 import (
+	"fmt"
 	"net/http"
 	"testing"
 
@@ -41,20 +42,13 @@ func TestRecordRoute_Create(t *testing.T) {
 			zoneInput:          `{"data": {"id":"01F1ZQZJXQXZJXZJXZJXZJXZJX", "type": "zones", "attributes": {"name": "internal.martinez.io"}}}`,
 			expectedStatusCode: http.StatusBadRequest,
 		},
-		//{
-		//	name:                   "id conflict",
-		//	input:                  `{"data": {"id":"01F1ZQZJXQXZJXZJXZJXZJXZRE", "type": "records", "attributes": {"name": "internal.martinez.io", "type": "A", "ttl": 300, "content": "192.168.0.1"}, "relationships": { "zones": { "data": { "type": "zones", "id": "01F1ZQZJXQXZJXZJXZJXZJXZJX" }}}}}`,
-		//	zoneInput:              `{"data": {"id":"01F1ZQZJXQXZJXZJXZJXZJXZJX", "type": "zones", "attributes": {"name": "internal.martinez.io"}}}`,
-		//	expectedLocationHeader: fmt.Sprintf("%s/v1/records/%s", viper.GetString("serviceUrl"), "01F1ZQZJXQXZJXZJXZJXZJXZJX"),
-		//	expectedStatusCode:     http.StatusConflict,
-		//},
-		//{
-		//	name:                   "name conflict",
-		//	input:                  `{"data": {"id":"01F1ZQZJXQXZJXZJXZJXZJXZRE", "type": "records", "attributes": {"name": "internal.martinez.io", "type": "A", "ttl": 300, "content": "192.168.0.1"}, "relationships": { "zones": { "data": { "type": "zones", "id": "01F1ZQZJXQXZJXZJXZJXZJXZJX" }}}}}`,
-		//	zoneInput:              `{"data": {"id":"01F1ZQZJXQXZJXZJXZJXZJXZJX", "type": "zones", "attributes": {"name": "internal.martinez.io"}}}`,
-		//	expectedLocationHeader: fmt.Sprintf("%s/v1/records/%s", viper.GetString("serviceUrl"), "01F1ZQZJXQXZJXZJXZJXZJXZJX"),
-		//	expectedStatusCode:     http.StatusConflict,
-		//},
+		{
+			name:                   "conflict",
+			input:                  `{"data": {"id":"01F1ZQZJXQXZJXZJXZJXZJXZRE", "type": "records", "attributes": {"name": "internal.martinez.io", "type": "A", "ttl": 300, "content": "192.168.0.1"}, "relationships": { "zones": { "data": { "type": "zones", "id": "01F1ZQZJXQXZJXZJXZJXZJXZJX" }}}}}`,
+			zoneInput:              `{"data": {"id":"01F1ZQZJXQXZJXZJXZJXZJXZJX", "type": "zones", "attributes": {"name": "internal.martinez.io"}}}`,
+			expectedLocationHeader: fmt.Sprintf("%s/v1/records/%s", viper.GetString("serviceUrl"), "01F1ZQZJXQXZJXZJXZJXZJXZRE"),
+			expectedStatusCode:     http.StatusConflict,
+		},
 	}
 
 	e := echo.New()
@@ -88,6 +82,78 @@ func TestRecordRoute_Create(t *testing.T) {
 				}
 				if test.expectedLocationHeader != "" {
 					assert.Equal(t, test.expectedLocationHeader, rec.Header().Get(echo.HeaderLocation))
+				}
+			}
+		})
+	}
+}
+
+func TestRecordRoute_Get(t *testing.T) {
+	defer TearDown()
+
+	tests := []struct {
+		name                   string
+		id                     string
+		input                  string
+		zoneInput              string
+		expectedData           *model.Record
+		expectedLocationHeader string
+		expectedStatusCode     int
+	}{
+		{
+			name:               "valid input",
+			id:                 "01F1ZQZJXQXZJXZJXZJXZJXZRE",
+			input:              `{"data": {"id":"01F1ZQZJXQXZJXZJXZJXZJXZRE", "type": "records", "attributes": {"name": "internal.martinez.io", "type": "A", "ttl": 300, "content": "192.168.0.1"}, "relationships": { "zones": { "data": { "type": "zones", "id": "01F1ZQZJXQXZJXZJXZJXZJXZJX" }}}}}`,
+			zoneInput:          `{"data": {"id":"01F1ZQZJXQXZJXZJXZJXZJXZJX", "type": "zones", "attributes": {"name": "internal.martinez.io"}}}`,
+			expectedData:       &model.Record{ID: "01F1ZQZJXQXZJXZJXZJXZJXZRE", Name: "internal.martinez.io", Type: "A", TTL: 300, Content: "192.168.0.1", ZoneID: "01F1ZQZJXQXZJXZJXZJXZJXZJX"},
+			expectedStatusCode: http.StatusOK,
+		},
+		{
+			name:               "valid input",
+			id:                 "01F1ZQZJXQXZJXZJXZJXZJXZNF",
+			input:              `{"data": {"id":"01F1ZQZJXQXZJXZJXZJXZJXZRE", "type": "records", "attributes": {"name": "internal.martinez.io", "type": "A", "ttl": 300, "content": "192.168.0.1"}, "relationships": { "zones": { "data": { "type": "zones", "id": "01F1ZQZJXQXZJXZJXZJXZJXZJX" }}}}}`,
+			zoneInput:          `{"data": {"id":"01F1ZQZJXQXZJXZJXZJXZJXZJX", "type": "zones", "attributes": {"name": "internal.martinez.io"}}}`,
+			expectedStatusCode: http.StatusNotFound,
+		},
+	}
+
+	e := echo.New()
+	e.Binder = &binder.JsonApiBinder{}
+
+	db, err := database.Database()
+	if err != nil {
+		panic(err)
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			routeZone := &ZoneRoute{db: db}
+			if test.zoneInput != "" {
+				c, _ := postTestRequest("/v1/zones", test.zoneInput, e)
+				err = routeZone.Create(c)
+				assert.NoError(t, err)
+			}
+
+			routeRecord := &RecordRoute{db: db}
+			c, _ := postTestRequest("/v1/records", test.input, e)
+			err = routeRecord.Create(c)
+			assert.NoError(t, err)
+
+			c, rec := getTestRequest("/v1/records/:id", e)
+			c.SetParamNames("id")
+			c.SetParamValues(test.id)
+			if assert.NoError(t, routeRecord.Get(c)) {
+				assert.Equal(t, test.expectedStatusCode, rec.Code)
+				if test.expectedData != nil {
+					assert.Equal(t, binder.MIMEApplicationJSONApi, rec.Header().Get(echo.HeaderContentType))
+					record := &model.Record{}
+					assert.NoError(t, jsonapi.Unmarshal(rec.Body.Bytes(), record))
+					assert.Equal(t, test.expectedData.Name, record.Name)
+					assert.Equal(t, test.expectedData.ID, record.ID)
+					assert.Equal(t, test.expectedData.Type, record.Type)
+					assert.Equal(t, test.expectedData.TTL, record.TTL)
+					assert.Equal(t, test.expectedData.Content, record.Content)
+					assert.Equal(t, test.expectedData.ZoneID, record.Zone.ID)
 				}
 			}
 		})
