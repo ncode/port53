@@ -67,8 +67,8 @@ func (r *RecordRoute) List(c echo.Context) (err error) {
 		return err
 	}
 
-	for _, record := range records {
-		if err := record.Get(r.db, true); err != nil {
+	for pos := range records {
+		if err := records[pos].Get(r.db, true); err != nil {
 			return err
 		}
 	}
