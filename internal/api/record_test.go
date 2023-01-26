@@ -15,7 +15,7 @@ import (
 )
 
 func init() {
-	viper.Set("database", "file:zone?mode=memory&cache=shared")
+	viper.Set("database", "file:records?mode=memory&cache=shared")
 }
 
 func TestRecordRoute_Create(t *testing.T) {
