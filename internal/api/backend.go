@@ -49,17 +49,39 @@ func (r *BackendRoute) Create(c echo.Context) (err error) {
 // List lists all backends
 func (r *BackendRoute) List(c echo.Context) (err error) {
 	var backends []model.Backend
-	err = r.db.Preload("Zones").Find(&backends).Error
+	query, err := ParseQuery(c)
+	if err != nil {
+		return c.String(http.StatusBadRequest, "invalid query parameters")
+	}
+
+	p := &pagination{Number: 0, Size: 10}
+	if query.Page != nil {
+		p = &pagination{Number: query.Page.Number, Size: query.Page.Size}
+	}
+
+	if len(query.Filters) > 0 {
+		tx := r.db
+		for filter, content := range query.Filters {
+			for _, c := range content {
+				tx = tx.Where(fmt.Sprintf("%s = ?", filter), c)
+			}
+		}
+		err = tx.Scopes(paginate(backends, p, tx)).Preload("Zones").Find(&backends).Error
+	} else {
+		err = r.db.Scopes(paginate(backends, p, r.db)).Preload("Zones").Find(&backends).Error
+	}
 	if err != nil {
 		return err
 	}
+
 	for pos, backend := range backends {
 		if len(backend.Zones) == 0 {
 			backends[pos].Zones = nil
 		}
 	}
 
-	return JSONAPI(c, http.StatusOK, backends)
+	p.SetLinks(fmt.Sprintf("/v1/backends?%s", query.BuildQuery()))
+	return JSONAPIPaginated(c, http.StatusOK, backends, p.Link())
 }
 
 // Update updates a backend

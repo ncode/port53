@@ -53,17 +53,17 @@ func TestParseQuery(t *testing.T) {
 		},
 		{
 			name:        "parse pagination",
-			queryString: "page[limit]=20&page[offset]=10",
+			queryString: "page[size]=20&page[number]=10",
 			expected: &Query{
 				Page: &Page{
-					Limit:  20,
-					Offset: 10,
+					Number: 20,
+					Size:   10,
 				},
 			},
 		},
 		{
 			name:        "parse multiple parameters",
-			queryString: "filter[name]=Mary&filter[age]=25&page[limit]=20&page[offset]=10&include=author&fields[articles]=title,body&fields[people]=name&sort=age",
+			queryString: "filter[name]=Mary&filter[age]=25&page[size]=20&page[number]=10&include=author&fields[articles]=title,body&fields[people]=name&sort=age",
 			expected: &Query{
 				Filters: map[string][]string{
 					"name": {"Mary"},
@@ -76,8 +76,8 @@ func TestParseQuery(t *testing.T) {
 				},
 				Sort: []string{"age"},
 				Page: &Page{
-					Limit:  20,
-					Offset: 10,
+					Number: 20,
+					Size:   10,
 				},
 			},
 		},
@@ -124,6 +124,109 @@ func TestParseQuery(t *testing.T) {
 			}
 			if !reflect.DeepEqual(query.Page, tc.expected.Page) {
 				t.Errorf("expected page %v but got %v", tc.expected.Page, query.Page)
+			}
+		})
+	}
+}
+
+func TestBuildQuery(t *testing.T) {
+	testCases := []struct {
+		name     string
+		query    Query
+		expected string
+	}{
+		{
+			name: "empty query",
+			query: Query{
+				Filters:  make(map[string][]string),
+				Includes: make(map[string]*Include),
+				Sort:     []string{},
+				Page:     nil,
+			},
+			expected: "",
+		},
+		{
+			name: "filter query",
+			query: Query{
+				Filters: map[string][]string{
+					"name": {"John", "Doe"},
+					"age":  {"30"},
+				},
+				Includes: make(map[string]*Include),
+				Sort:     []string{},
+				Page:     nil,
+			},
+			expected: "filter[name]=John&filter[name]=Doe&filter[age]=30",
+		},
+		{
+			name: "include query",
+			query: Query{
+				Filters: make(map[string][]string),
+				Includes: map[string]*Include{
+					"comments": {Fields: []string{}},
+					"author":   {Fields: []string{}},
+				},
+				Sort: []string{},
+				Page: nil,
+			},
+			expected: "include=comments,author",
+		},
+		{
+			name: "fields query",
+			query: Query{
+				Filters: make(map[string][]string),
+				Includes: map[string]*Include{
+					"author": {Fields: []string{"name"}},
+				},
+				Sort: []string{},
+				Page: nil,
+			},
+			expected: "include=author&fields[author]=name",
+		},
+		{
+			name: "sort query",
+			query: Query{
+				Filters:  make(map[string][]string),
+				Includes: make(map[string]*Include),
+				Sort:     []string{"name", "-age"},
+				Page:     nil,
+			},
+			expected: "sort=name,-age",
+		},
+		{
+			name: "page query",
+			query: Query{
+				Filters:  make(map[string][]string),
+				Includes: make(map[string]*Include),
+				Sort:     []string{},
+				Page:     &Page{Size: 10, Number: 2},
+			},
+			expected: "page[size]=10&page[number]=2",
+		},
+		{
+			name: "all query",
+			query: Query{
+				Includes: map[string]*Include{
+					"comments": &Include{Fields: []string{"id", "text"}},
+					"author":   &Include{Fields: []string{"id", "name"}},
+				},
+				Filters: map[string][]string{
+					"title": []string{"Hello", "World"},
+					"body":  []string{"Lorem", "Ipsum"},
+				},
+				Sort: []string{"id", "desc"},
+				Page: &Page{Size: 10, Number: 2},
+			},
+			expected: "filter[title]=Hello&filter[title]=World&filter[body]=Lorem&filter[body]=Ipsum&include=comments,author&fields[comments]=id,text&fields[author]=id,name&sort=id,desc&page[size]=10&page[number]=2",
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			result := tc.query.BuildQuery()
+			if result != tc.expected {
+
+				t.Errorf("BuildQuery() = %s; want %s", result, tc.expected)
 			}
 		})
 	}

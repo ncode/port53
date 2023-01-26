@@ -25,8 +25,8 @@ type Include struct {
 }
 
 type Page struct {
-	Offset int
-	Limit  int
+	Size   int
+	Number int
 }
 
 // ParseQuery parses a query string into a Query struct
@@ -72,7 +72,7 @@ func ParseQuery(c echo.Context) (*Query, error) {
 			// parse sorting
 			query.Sort = strings.Split(value, ",")
 
-		case key == "page[limit]":
+		case key == "page[size]":
 			// parse page limit
 			n, err := strconv.Atoi(value)
 			if err != nil {
@@ -81,8 +81,8 @@ func ParseQuery(c echo.Context) (*Query, error) {
 			if query.Page == nil {
 				query.Page = &Page{}
 			}
-			query.Page.Limit = n
-		case key == "page[offset]":
+			query.Page.Size = n
+		case key == "page[number]":
 			// parse page offset
 			n, err := strconv.Atoi(value)
 			if err != nil {
@@ -91,8 +91,66 @@ func ParseQuery(c echo.Context) (*Query, error) {
 			if query.Page == nil {
 				query.Page = &Page{}
 			}
-			query.Page.Offset = n
+			query.Page.Number = n
 		}
 	}
 	return query, nil
+}
+
+func (q *Query) BuildQuery() (query string) {
+	var b strings.Builder
+
+	// Build filter parameters
+	for k, v := range q.Filters {
+		for _, vv := range v {
+			b.WriteString("filter[" + k + "]=" + vv + "&")
+		}
+	}
+
+	// Build include parameters
+	if len(q.Includes) > 0 {
+		b.WriteString("include=")
+		for k := range q.Includes {
+			b.WriteString(k + ",")
+		}
+		buff := b.String()
+		b.Reset()
+		b.WriteString(strings.TrimSuffix(buff, ",")) // remove trailing comma
+		b.WriteString("&")
+	}
+
+	// Build field parameters
+	for k, v := range q.Includes {
+		if len(v.Fields) == 0 {
+			continue
+		}
+		b.WriteString("fields[" + k + "]=")
+		for _, vv := range v.Fields {
+			b.WriteString(vv + ",")
+		}
+		buff := b.String()
+		b.Reset()
+		b.WriteString(strings.TrimSuffix(buff, ",")) // remove trailing comma
+		b.WriteString("&")
+	}
+
+	// Build sort parameter
+	if len(q.Sort) > 0 {
+		b.WriteString("sort=")
+		for _, v := range q.Sort {
+			b.WriteString(v + ",")
+		}
+		buff := b.String()
+		b.Reset()
+		b.WriteString(strings.TrimSuffix(buff, ",")) // remove trailing commama
+		b.WriteString("&")
+	}
+
+	// Build page parameters
+	if q.Page != nil {
+		b.WriteString("page[size]=" + strconv.Itoa(q.Page.Size) + "&")
+		b.WriteString("page[number]=" + strconv.Itoa(q.Page.Number) + "&")
+	}
+
+	return strings.TrimSuffix(b.String(), "&")
 }

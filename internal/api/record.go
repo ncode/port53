@@ -42,16 +42,39 @@ func (r *RecordRoute) Create(c echo.Context) (err error) {
 // List lists all records
 func (r *RecordRoute) List(c echo.Context) (err error) {
 	var records []model.Record
-	err = r.db.Find(&records).Error
-	for _, record := range records {
-		if err := record.Get(r.db, true); err != nil {
-			return err
+	query, err := ParseQuery(c)
+	if err != nil {
+		return c.String(http.StatusBadRequest, "invalid query parameters")
+	}
+
+	p := &pagination{Number: 0, Size: 10}
+	if query.Page != nil {
+		p = &pagination{Number: query.Page.Number, Size: query.Page.Size}
+	}
+
+	if len(query.Filters) > 0 {
+		tx := r.db
+		for filter, content := range query.Filters {
+			for _, c := range content {
+				tx = tx.Where(fmt.Sprintf("%s = ?", filter), c)
+			}
 		}
+		err = tx.Scopes(paginate(records, p, tx)).Find(&records).Error
+	} else {
+		err = r.db.Scopes(paginate(records, p, r.db)).Find(&records).Error
 	}
 	if err != nil {
 		return err
 	}
-	return JSONAPI(c, http.StatusOK, records)
+
+	for pos := range records {
+		if err := records[pos].Get(r.db, true); err != nil {
+			return err
+		}
+	}
+
+	p.SetLinks(fmt.Sprintf("/v1/backends?%s", query.BuildQuery()))
+	return JSONAPIPaginated(c, http.StatusOK, records, p.Link())
 }
 
 // Get gets a record
@@ -67,10 +90,20 @@ func (r *RecordRoute) Get(c echo.Context) (err error) {
 	return JSONAPI(c, http.StatusOK, record)
 }
 
+// Delete deletes a backend
+func (r *RecordRoute) Delete(c echo.Context) (err error) {
+	record := &model.Record{ID: c.Param("id")}
+	err = record.Delete(r.db)
+	if err != nil && err.Error() != "record not found" {
+		return err
+	}
+	return c.NoContent(http.StatusNoContent)
+}
+
 // Register registers the routes
 func (r *RecordRoute) Register(e *echo.Echo) {
 	e.GET("/v1/records/:id", r.Get)
-	//e.DELETE("/v1/records/:id", r.Delete)
+	e.DELETE("/v1/records/:id", r.Delete)
 	e.POST("/v1/records", r.Create)
 	//e.PATCH("/v1/records/:id", r.Update)
 	e.GET("/v1/records", r.List)
