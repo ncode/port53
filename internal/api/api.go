@@ -54,3 +54,12 @@ func JSONAPI(c echo.Context, code int, data interface{}) error {
 	}
 	return c.Blob(code, binder.MIMEApplicationJSONApi, marshal)
 }
+
+// JSONAPIPaginated serializes jsonapi responses and set the proper content type along with pagination Links
+func JSONAPIPaginated(c echo.Context, code int, data interface{}, link *jsonapi.Link) error {
+	marshal, err := jsonapi.Marshal(data, []jsonapi.MarshalOption{jsonapi.MarshalLinks(link)}...)
+	if err != nil {
+		return err
+	}
+	return c.Blob(code, binder.MIMEApplicationJSONApi, marshal)
+}
