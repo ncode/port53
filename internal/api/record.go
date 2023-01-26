@@ -67,10 +67,20 @@ func (r *RecordRoute) Get(c echo.Context) (err error) {
 	return JSONAPI(c, http.StatusOK, record)
 }
 
+// Delete deletes a backend
+func (r *RecordRoute) Delete(c echo.Context) (err error) {
+	record := &model.Record{ID: c.Param("id")}
+	err = record.Delete(r.db)
+	if err != nil && err.Error() != "record not found" {
+		return err
+	}
+	return c.NoContent(http.StatusNoContent)
+}
+
 // Register registers the routes
 func (r *RecordRoute) Register(e *echo.Echo) {
 	e.GET("/v1/records/:id", r.Get)
-	//e.DELETE("/v1/records/:id", r.Delete)
+	e.DELETE("/v1/records/:id", r.Delete)
 	e.POST("/v1/records", r.Create)
 	//e.PATCH("/v1/records/:id", r.Update)
 	e.GET("/v1/records", r.List)
