@@ -49,13 +49,38 @@ func (r *ZoneRoute) Create(c echo.Context) (err error) {
 // List lists all zones
 func (r *ZoneRoute) List(c echo.Context) (err error) {
 	var zones []model.Zone
-	err = r.db.Preload("Backends").Find(&zones).Error
+
+	query, err := ParseQuery(c)
+	if err != nil {
+		return c.String(http.StatusBadRequest, "invalid query parameters")
+	}
+
+	p := &pagination{Number: 0, Size: 10}
+	if query.Page != nil {
+		p = &pagination{Number: query.Page.Number, Size: query.Page.Size}
+	}
+
+	if len(query.Filters) > 0 {
+		tx := r.db
+		for filter, content := range query.Filters {
+			for _, c := range content {
+				tx = tx.Where(fmt.Sprintf("%s = ?", filter), c)
+			}
+		}
+		tx.Scopes(paginate(zones, p, tx)).Preload("Backends").Preload("Records").Find(&zones)
+	} else {
+		r.db.Scopes(paginate(zones, p, r.db)).Preload("Backends").Preload("Records").Find(&zones)
+	}
+
 	if err != nil {
 		return err
 	}
 	for pos, zone := range zones {
 		if len(zone.Backends) == 0 {
 			zones[pos].Backends = nil
+		}
+		if len(zone.Records) == 0 {
+			zones[pos].Records = nil
 		}
 	}
 	return JSONAPI(c, http.StatusOK, zones)

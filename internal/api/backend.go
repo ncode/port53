@@ -67,7 +67,6 @@ func (r *BackendRoute) List(c echo.Context) (err error) {
 			}
 		}
 		tx.Scopes(paginate(backends, p, tx)).Preload("Zones").Find(&backends)
-		tx.Debug().Find(&backends)
 	} else {
 		r.db.Scopes(paginate(backends, p, r.db)).Preload("Zones").Find(&backends)
 	}

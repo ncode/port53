@@ -42,12 +42,34 @@ func (r *RecordRoute) Create(c echo.Context) (err error) {
 // List lists all records
 func (r *RecordRoute) List(c echo.Context) (err error) {
 	var records []model.Record
-	err = r.db.Find(&records).Error
+	query, err := ParseQuery(c)
+	if err != nil {
+		return c.String(http.StatusBadRequest, "invalid query parameters")
+	}
+
+	p := &pagination{Number: 0, Size: 10}
+	if query.Page != nil {
+		p = &pagination{Number: query.Page.Number, Size: query.Page.Size}
+	}
+
+	if len(query.Filters) > 0 {
+		tx := r.db
+		for filter, content := range query.Filters {
+			for _, c := range content {
+				tx = tx.Where(fmt.Sprintf("%s = ?", filter), c)
+			}
+		}
+		tx.Scopes(paginate(records, p, tx)).Find(&records)
+	} else {
+		r.db.Scopes(paginate(records, p, r.db)).Preload("Zones").Find(&records)
+	}
+
 	for _, record := range records {
 		if err := record.Get(r.db, true); err != nil {
 			return err
 		}
 	}
+
 	if err != nil {
 		return err
 	}
