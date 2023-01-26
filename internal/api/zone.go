@@ -67,14 +67,14 @@ func (r *ZoneRoute) List(c echo.Context) (err error) {
 				tx = tx.Where(fmt.Sprintf("%s = ?", filter), c)
 			}
 		}
-		tx.Scopes(paginate(zones, p, tx)).Preload("Backends").Preload("Records").Find(&zones)
+		err = tx.Scopes(paginate(zones, p, tx)).Preload("Backends").Preload("Records").Find(&zones).Error
 	} else {
-		r.db.Scopes(paginate(zones, p, r.db)).Preload("Backends").Preload("Records").Find(&zones)
+		err = r.db.Scopes(paginate(zones, p, r.db)).Preload("Backends").Preload("Records").Find(&zones).Error
 	}
-
 	if err != nil {
 		return err
 	}
+
 	for pos, zone := range zones {
 		if len(zone.Backends) == 0 {
 			zones[pos].Backends = nil
@@ -83,7 +83,9 @@ func (r *ZoneRoute) List(c echo.Context) (err error) {
 			zones[pos].Records = nil
 		}
 	}
-	return JSONAPI(c, http.StatusOK, zones)
+
+	p.SetLinks(fmt.Sprintf("/v1/zones?%s", query.BuildQuery()))
+	return JSONAPIPaginated(c, http.StatusOK, zones, p.Link())
 }
 
 // Update updates a zone

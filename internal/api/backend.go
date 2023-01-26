@@ -66,9 +66,12 @@ func (r *BackendRoute) List(c echo.Context) (err error) {
 				tx = tx.Where(fmt.Sprintf("%s = ?", filter), c)
 			}
 		}
-		tx.Scopes(paginate(backends, p, tx)).Preload("Zones").Find(&backends)
+		err = tx.Scopes(paginate(backends, p, tx)).Preload("Zones").Find(&backends).Error
 	} else {
-		r.db.Scopes(paginate(backends, p, r.db)).Preload("Zones").Find(&backends)
+		err = r.db.Scopes(paginate(backends, p, r.db)).Preload("Zones").Find(&backends).Error
+	}
+	if err != nil {
+		return err
 	}
 
 	for pos, backend := range backends {
@@ -77,7 +80,7 @@ func (r *BackendRoute) List(c echo.Context) (err error) {
 		}
 	}
 
-	p.SetLinks(fmt.Sprintf("/v1/host?%s", query.BuildQuery()))
+	p.SetLinks(fmt.Sprintf("/v1/backends?%s", query.BuildQuery()))
 	return JSONAPIPaginated(c, http.StatusOK, backends, p.Link())
 }
 

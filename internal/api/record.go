@@ -59,9 +59,12 @@ func (r *RecordRoute) List(c echo.Context) (err error) {
 				tx = tx.Where(fmt.Sprintf("%s = ?", filter), c)
 			}
 		}
-		tx.Scopes(paginate(records, p, tx)).Find(&records)
+		err = tx.Scopes(paginate(records, p, tx)).Find(&records).Error
 	} else {
-		r.db.Scopes(paginate(records, p, r.db)).Preload("Zones").Find(&records)
+		err = r.db.Scopes(paginate(records, p, r.db)).Find(&records).Error
+	}
+	if err != nil {
+		return err
 	}
 
 	for _, record := range records {
@@ -70,10 +73,8 @@ func (r *RecordRoute) List(c echo.Context) (err error) {
 		}
 	}
 
-	if err != nil {
-		return err
-	}
-	return JSONAPI(c, http.StatusOK, records)
+	p.SetLinks(fmt.Sprintf("/v1/backends?%s", query.BuildQuery()))
+	return JSONAPIPaginated(c, http.StatusOK, records, p.Link())
 }
 
 // Get gets a record
