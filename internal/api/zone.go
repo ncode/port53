@@ -63,8 +63,29 @@ func (r *ZoneRoute) List(c echo.Context) (err error) {
 	if len(query.Filters) > 0 {
 		tx := r.db
 		for filter, content := range query.Filters {
+			// TODO: this is a bit hacky, but it works for now
+			//       find a better way to do this
 			for _, c := range content {
-				tx = tx.Where(fmt.Sprintf("%s = ?", filter), c)
+				var f string
+				switch filter {
+				case "name":
+					f = "name = ?"
+				case "soa":
+					f = "soa = ?"
+				case "ttl":
+					f = "ttl = ?"
+				case "serial":
+					f = "serial = ?"
+				case "refresh":
+					f = "refresh = ?"
+				case "retry":
+					f = "retry = ?"
+				case "expire":
+					f = "expire = ?"
+				case "minimum":
+					f = "minimum = ?"
+				}
+				tx = tx.Where(f, c)
 			}
 		}
 		err = tx.Scopes(paginate(zones, p, tx)).Preload("Backends").Preload("Records").Find(&zones).Error

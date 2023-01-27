@@ -56,7 +56,22 @@ func (r *RecordRoute) List(c echo.Context) (err error) {
 		tx := r.db
 		for filter, content := range query.Filters {
 			for _, c := range content {
-				tx = tx.Where(fmt.Sprintf("%s = ?", filter), c)
+				var f string
+				switch filter {
+				case "ttl":
+					f = "ttl = ?"
+				case "type":
+					f = "type = ?"
+				case "value":
+					f = "value = ?"
+				case "zone":
+					f = "zone_id = ?"
+				case "content":
+					f = "content = ?"
+				case "name":
+					f = "name = ?"
+				}
+				tx = tx.Where(f, c)
 			}
 		}
 		err = tx.Scopes(paginate(records, p, tx)).Find(&records).Error
@@ -67,13 +82,17 @@ func (r *RecordRoute) List(c echo.Context) (err error) {
 		return err
 	}
 
+	if len(records) == 0 {
+		return c.String(http.StatusNotFound, "No records found")
+	}
+
 	for pos := range records {
 		if err := records[pos].Get(r.db, true); err != nil {
 			return err
 		}
 	}
 
-	p.SetLinks(fmt.Sprintf("/v1/backends?%s", query.BuildQuery()))
+	p.SetLinks(fmt.Sprintf("/v1/records?%s", query.BuildQuery()))
 	return JSONAPIPaginated(c, http.StatusOK, records, p.Link())
 }
 

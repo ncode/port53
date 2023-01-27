@@ -63,7 +63,12 @@ func (r *BackendRoute) List(c echo.Context) (err error) {
 		tx := r.db
 		for filter, content := range query.Filters {
 			for _, c := range content {
-				tx = tx.Where(fmt.Sprintf("%s = ?", filter), c)
+				var f string
+				switch filter {
+				case "name":
+					f = "name = ?"
+				}
+				tx = tx.Where(f, c)
 			}
 		}
 		err = tx.Scopes(paginate(backends, p, tx)).Preload("Zones").Find(&backends).Error
