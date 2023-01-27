@@ -242,16 +242,15 @@ func TestRecordRoute_List(t *testing.T) {
 	}{
 		{
 			name:               "valid input",
+			expectedStatusCode: http.StatusNotFound,
+		},
+		{
+			name:               "valid input",
 			id:                 "01F1ZQZJXQXZJXZJXZJXZJXZRE",
 			input:              `{"data": {"id":"01F1ZQZJXQXZJXZJXZJXZJXZRE", "type": "records", "attributes": {"name": "internal.martinez.io", "type": "A", "ttl": 300, "content": "192.168.0.1"}, "relationships": { "zones": { "data": { "type": "zones", "id": "01F1ZQZJXQXZJXZJXZJXZJXZJX" }}}}}`,
 			zoneInput:          `{"data": {"id":"01F1ZQZJXQXZJXZJXZJXZJXZJX", "type": "zones", "attributes": {"name": "internal.martinez.io"}}}`,
 			expectedData:       []model.Record{{ID: "01F1ZQZJXQXZJXZJXZJXZJXZRE", Name: "internal.martinez.io", Type: "A", TTL: 300, Content: "192.168.0.1", ZoneID: "01F1ZQZJXQXZJXZJXZJXZJXZJX"}},
 			expectedStatusCode: http.StatusOK,
-		},
-		{
-			name:               "valid input",
-			id:                 "01F1ZQZJXQXZJXZJXZJXZJXZNF",
-			expectedStatusCode: http.StatusNotFound,
 		},
 	}
 

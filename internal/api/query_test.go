@@ -56,8 +56,8 @@ func TestParseQuery(t *testing.T) {
 			queryString: "page[size]=20&page[number]=10",
 			expected: &Query{
 				Page: &Page{
-					Number: 20,
-					Size:   10,
+					Number: 10,
+					Size:   20,
 				},
 			},
 		},
@@ -76,8 +76,8 @@ func TestParseQuery(t *testing.T) {
 				},
 				Sort: []string{"age"},
 				Page: &Page{
-					Number: 20,
-					Size:   10,
+					Number: 10,
+					Size:   20,
 				},
 			},
 		},
