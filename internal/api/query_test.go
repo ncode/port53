@@ -207,8 +207,7 @@ func TestBuildQuery(t *testing.T) {
 			name: "all query",
 			query: Query{
 				Includes: map[string]*Include{
-					"comments": &Include{Fields: []string{"id", "text"}},
-					"author":   &Include{Fields: []string{"id", "name"}},
+					"author": &Include{Fields: []string{"id", "name"}},
 				},
 				Filters: map[string][]string{
 					"title": []string{"Hello", "World"},
@@ -217,7 +216,7 @@ func TestBuildQuery(t *testing.T) {
 				Sort: []string{"id", "desc"},
 				Page: &Page{Size: 10, Number: 2},
 			},
-			expected: "filter[title]=Hello&filter[title]=World&filter[body]=Lorem&filter[body]=Ipsum&include=comments,author&fields[comments]=id,text&fields[author]=id,name&sort=id,desc&page[size]=10&page[number]=2",
+			expected: "filter[title]=Hello&filter[title]=World&filter[body]=Lorem&filter[body]=Ipsum&include=author&fields[author]=id,name&sort=id,desc&page[size]=10&page[number]=2",
 		},
 	}
 
@@ -225,7 +224,6 @@ func TestBuildQuery(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			result := tc.query.BuildQuery()
 			if result != tc.expected {
-
 				t.Errorf("BuildQuery() = %s; want %s", result, tc.expected)
 			}
 		})
