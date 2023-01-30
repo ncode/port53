@@ -1,6 +1,7 @@
 package api
 
 import (
+	"net/url"
 	"strconv"
 	"strings"
 
@@ -36,7 +37,12 @@ func ParseQuery(c echo.Context) (*Query, error) {
 		Filters:  make(map[string][]string),
 	}
 
-	qs := c.QueryString()
+	qsEncoded := c.QueryString()
+	qs, err := url.QueryUnescape(qsEncoded)
+	if err != nil {
+		return nil, err
+	}
+
 	for _, p := range strings.Split(qs, "&") {
 		parts := strings.SplitN(p, "=", 2)
 		if len(parts) != 2 {
@@ -142,7 +148,7 @@ func (q *Query) BuildQuery() (query string) {
 		}
 		buff := b.String()
 		b.Reset()
-		b.WriteString(strings.TrimSuffix(buff, ",")) // remove trailing commama
+		b.WriteString(strings.TrimSuffix(buff, ",")) // remove trailing comma
 		b.WriteString("&")
 	}
 
