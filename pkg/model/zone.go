@@ -63,7 +63,13 @@ func (z *Zone) Get(db *gorm.DB, preload bool) (err error) {
 
 // Update a zone
 func (z *Zone) Update(db *gorm.DB, zone Zone) (err error) {
-	return db.Model(z).Updates(zone).Error
+	return db.Transaction(func(tx *gorm.DB) error {
+		err = tx.Model(z).Updates(zone).Error
+		if err != nil {
+			return err
+		}
+		return nil
+	})
 }
 
 // Delete a zone
@@ -74,65 +80,41 @@ func (z *Zone) Delete(db *gorm.DB) (err error) {
 // AddBackend adds a zone to the zone
 func (z *Zone) AddBackend(db *gorm.DB, backend *Backend) (err error) {
 	return db.Transaction(func(tx *gorm.DB) error {
-		err = tx.Model(z).Association("Backends").Append(backend)
-		if err != nil {
-			return err
-		}
-		return nil
+		return tx.Model(z).Association("Backends").Append(backend)
 	})
 }
 
 // RemoveBackend removes a backend from the zone
 func (z *Zone) RemoveBackend(db *gorm.DB, backend *Backend) (err error) {
 	return db.Transaction(func(tx *gorm.DB) error {
-		err = tx.Model(z).Association("Backends").Delete(backend)
-		if err != nil {
-			return err
-		}
-		return nil
+		return tx.Model(z).Association("Backends").Delete(backend)
 	})
 }
 
 // ReplaceBackends replaces all backends of the zone
 func (z *Zone) ReplaceBackends(db *gorm.DB, backends []*Backend) (err error) {
 	return db.Transaction(func(tx *gorm.DB) error {
-		err = tx.Model(z).Association("Backends").Replace(backends)
-		if err != nil {
-			return err
-		}
-		return nil
+		return tx.Model(z).Association("Backends").Replace(backends)
 	})
 }
 
 // AddRecord adds a record to the zone
 func (z *Zone) AddRecord(db *gorm.DB, record *Record) (err error) {
 	return db.Transaction(func(tx *gorm.DB) error {
-		err = tx.Model(z).Association("Records").Append(record)
-		if err != nil {
-			return err
-		}
-		return nil
+		return tx.Model(z).Association("Records").Append(record)
 	})
 }
 
 // RemoveRecord removes a record from the zone
 func (z *Zone) RemoveRecord(db *gorm.DB, record *Record) (err error) {
 	return db.Transaction(func(tx *gorm.DB) error {
-		err = tx.Model(z).Association("Records").Delete(record)
-		if err != nil {
-			return err
-		}
-		return nil
+		return tx.Model(z).Association("Records").Delete(record)
 	})
 }
 
 // ReplaceRecords replaces all records of the zone
 func (z *Zone) ReplaceRecords(db *gorm.DB, records []*Record) (err error) {
 	return db.Transaction(func(tx *gorm.DB) error {
-		err = tx.Model(z).Association("Records").Replace(records)
-		if err != nil {
-			return err
-		}
-		return nil
+		return tx.Model(z).Association("Records").Replace(records)
 	})
 }
