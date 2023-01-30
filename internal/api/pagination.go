@@ -1,6 +1,8 @@
 package api
 
 import (
+	"fmt"
+	"math"
 	"strconv"
 
 	"github.com/DataDog/jsonapi"
@@ -39,15 +41,21 @@ func (p *pagination) AtoiSize(size string) (err error) {
 }
 
 func (p *pagination) SetLinks(baseURL string) {
+	totalPages := int(math.Ceil(float64(p.Total) / float64(p.Size)))
+
 	if p.Number > 0 {
-		p.Previous = baseURL + "?page[number]=" + strconv.Itoa(p.Number-1) + "&page[size]=" + strconv.Itoa(p.Size)
+		p.Previous = fmt.Sprintf("%s?page[number]=%d&page[size]=%d", baseURL, p.Number-1, p.Size)
 	}
-	if p.Number < int(p.Total) {
-		p.Next = baseURL + "?page[number]=" + strconv.Itoa(p.Number+1) + "&page[size]=" + strconv.Itoa(p.Size)
+	if p.Number < totalPages-1 {
+		p.Next = fmt.Sprintf("%s?page[number]=%d&page[size]=%d", baseURL, p.Number+1, p.Size)
 	}
-	p.First = baseURL + "?page[number]=0&page[size]=" + strconv.Itoa(p.Size)
-	p.Last = baseURL + "?page[number]=" + strconv.Itoa(int(p.Total)) + "&page[size]=" + strconv.Itoa(p.Size)
-	p.Self = baseURL + "?page[number]=" + strconv.Itoa(p.Number) + "&page[size]=" + strconv.Itoa(p.Size)
+	p.First = fmt.Sprintf("%s?page[number]=0&page[size]=%d", baseURL, p.Size)
+	p.Last = fmt.Sprintf("%s?page[number]=%d&page[size]=%d", baseURL, totalPages-1, p.Size)
+	if p.Number >= totalPages-1 {
+		p.Self = fmt.Sprintf("%s?page[number]=%d&page[size]=%d", baseURL, totalPages-1, p.Size)
+	} else {
+		p.Self = fmt.Sprintf("%s?page[number]=%d&page[size]=%d", baseURL, p.Number, p.Size)
+	}
 }
 
 func (p *pagination) Link() *jsonapi.Link {

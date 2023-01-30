@@ -43,19 +43,93 @@ func TestAtoiSize(t *testing.T) {
 }
 
 func TestSetLinks(t *testing.T) {
-	p := &pagination{
-		Number: 2,
-		Size:   10,
-		Total:  100,
+	baseURL := "https://example.com"
+	tests := []struct {
+		name     string
+		paginate *pagination
+		want     struct {
+			first    string
+			last     string
+			previous string
+			next     string
+			self     string
+		}
+	}{
+		{
+			name: "first page with default size",
+			paginate: &pagination{
+				Number: 0,
+				Size:   10,
+				Total:  30,
+			},
+			want: struct {
+				first    string
+				last     string
+				previous string
+				next     string
+				self     string
+			}{
+				first:    baseURL + "?page[number]=0&page[size]=10",
+				last:     baseURL + "?page[number]=2&page[size]=10",
+				previous: "",
+				next:     baseURL + "?page[number]=1&page[size]=10",
+				self:     baseURL + "?page[number]=0&page[size]=10",
+			},
+		},
+		{
+			name: "last page with custom size",
+			paginate: &pagination{
+				Number: 2,
+				Size:   15,
+				Total:  30,
+			},
+			want: struct {
+				first    string
+				last     string
+				previous string
+				next     string
+				self     string
+			}{
+				first:    baseURL + "?page[number]=0&page[size]=15",
+				last:     baseURL + "?page[number]=1&page[size]=15",
+				previous: baseURL + "?page[number]=1&page[size]=15",
+				next:     "",
+				self:     baseURL + "?page[number]=1&page[size]=15",
+			},
+		},
+		{
+			name: "middle page with odd total count",
+			paginate: &pagination{
+				Number: 1,
+				Size:   10,
+				Total:  21,
+			},
+			want: struct {
+				first    string
+				last     string
+				previous string
+				next     string
+				self     string
+			}{
+				first:    baseURL + "?page[number]=0&page[size]=10",
+				last:     baseURL + "?page[number]=2&page[size]=10",
+				previous: baseURL + "?page[number]=0&page[size]=10",
+				next:     baseURL + "?page[number]=2&page[size]=10",
+				self:     baseURL + "?page[number]=1&page[size]=10",
+			},
+		},
 	}
 
-	p.SetLinks("http://localhost:8000/test")
-
-	assert.Equal(t, "http://localhost:8000/test?page[number]=1&page[size]=10", p.Previous)
-	assert.Equal(t, "http://localhost:8000/test?page[number]=3&page[size]=10", p.Next)
-	assert.Equal(t, "http://localhost:8000/test?page[number]=0&page[size]=10", p.First)
-	assert.Equal(t, "http://localhost:8000/test?page[number]=100&page[size]=10", p.Last)
-	assert.Equal(t, "http://localhost:8000/test?page[number]=2&page[size]=10", p.Self)
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			tt.paginate.SetLinks(baseURL)
+			assert.Equal(t, tt.want.first, tt.paginate.First)
+			assert.Equal(t, tt.want.last, tt.paginate.Last)
+			assert.Equal(t, tt.want.previous, tt.paginate.Previous)
+			assert.Equal(t, tt.want.next, tt.paginate.Next)
+			assert.Equal(t, tt.want.self, tt.paginate.Self)
+		})
+	}
 }
 
 func TestLink(t *testing.T) {
