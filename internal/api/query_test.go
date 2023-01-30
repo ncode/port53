@@ -207,11 +207,11 @@ func TestBuildQuery(t *testing.T) {
 			name: "all query",
 			query: Query{
 				Includes: map[string]*Include{
-					"author": &Include{Fields: []string{"id", "name"}},
+					"author": {Fields: []string{"id", "name"}},
 				},
 				Filters: map[string][]string{
-					"title": []string{"Hello", "World"},
-					"body":  []string{"Lorem", "Ipsum"},
+					"title": {"Hello", "World"},
+					"body":  {"Lorem", "Ipsum"},
 				},
 				Sort: []string{"id", "desc"},
 				Page: &Page{Size: 10, Number: 2},
