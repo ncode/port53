@@ -119,14 +119,17 @@ func (r *ZoneRoute) Update(c echo.Context) (err error) {
 		}
 		return err
 	}
-	newZone := &model.Zone{}
-	if err := c.Bind(newZone); err != nil {
+	newZone := model.Zone{}
+	if err := c.Bind(&newZone); err != nil {
 		return err
 	}
-	if (newZone == nil) || (newZone.Name == "") {
+	if newZone.Name == "" {
 		return c.String(http.StatusBadRequest, "Name is required")
 	}
-	r.db.Model(&zone).Updates(&newZone)
+	err = zone.Update(r.db, newZone)
+	if err != nil {
+		return err
+	}
 	return JSONAPI(c, http.StatusOK, zone)
 }
 

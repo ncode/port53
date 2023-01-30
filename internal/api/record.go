@@ -109,6 +109,31 @@ func (r *RecordRoute) Get(c echo.Context) (err error) {
 	return JSONAPI(c, http.StatusOK, record)
 }
 
+// Update updates a record
+func (r *RecordRoute) Update(c echo.Context) (err error) {
+	record := model.Record{ID: c.Param("id")}
+	err = record.Get(r.db, false)
+	if err != nil {
+		if err.Error() == "record not found" {
+			return c.String(http.StatusNotFound, "Record not found")
+		}
+		return err
+	}
+	var newRecord model.Record
+	if err := c.Bind(&newRecord); err != nil {
+		return err
+	}
+	err = record.Update(r.db, newRecord)
+	if err != nil {
+		return err
+	}
+	err = record.Get(r.db, true)
+	if err != nil {
+		return err
+	}
+	return JSONAPI(c, http.StatusOK, record)
+}
+
 // Delete deletes a backend
 func (r *RecordRoute) Delete(c echo.Context) (err error) {
 	record := &model.Record{ID: c.Param("id")}
@@ -124,7 +149,7 @@ func (r *RecordRoute) Register(e *echo.Echo) {
 	e.GET("/v1/records/:id", r.Get)
 	e.DELETE("/v1/records/:id", r.Delete)
 	e.POST("/v1/records", r.Create)
-	//e.PATCH("/v1/records/:id", r.Update)
+	e.PATCH("/v1/records/:id", r.Update)
 	e.GET("/v1/records", r.List)
 	// Relationships
 	//e.GET("/v1/records/:id/zones", r.GetZone)

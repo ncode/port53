@@ -67,13 +67,17 @@ func (r *Record) Delete(db *gorm.DB) error {
 }
 
 // Update the record
-func (r *Record) Update(db *gorm.DB) error {
-	return db.Save(r).Error
+func (r *Record) Update(db *gorm.DB, record Record) error {
+	return db.Transaction(func(tx *gorm.DB) error {
+		return tx.Model(r).Updates(record).Error
+	})
 }
 
 // ReplaceZone replaces the zone of the record
 func (r *Record) ReplaceZone(db *gorm.DB, zone *Zone) error {
-	return db.Model(r).Association("Zone").Replace(zone)
+	return db.Transaction(func(tx *gorm.DB) error {
+		return tx.Model(r).Association("Zone").Replace(zone)
+	})
 }
 
 // DeleteZone deletes the zone of the record
