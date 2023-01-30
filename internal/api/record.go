@@ -123,13 +123,11 @@ func (r *RecordRoute) Update(c echo.Context) (err error) {
 	if err := c.Bind(&newRecord); err != nil {
 		return err
 	}
-	if newRecord.Name == "" {
-		return c.String(http.StatusBadRequest, "Name is required")
-	}
-	if newRecord.Zone == nil {
-		return c.String(http.StatusBadRequest, "Zone is required")
-	}
 	err = record.Update(r.db, newRecord)
+	if err != nil {
+		return err
+	}
+	err = record.Get(r.db, true)
 	if err != nil {
 		return err
 	}
