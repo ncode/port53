@@ -62,8 +62,8 @@ func (z *Zone) Get(db *gorm.DB, preload bool) (err error) {
 }
 
 // Update a zone
-func (z *Zone) Update(db *gorm.DB) (err error) {
-	return db.Save(&z).Error
+func (z *Zone) Update(db *gorm.DB, zone Zone) (err error) {
+	return db.Model(z).Updates(zone).Error
 }
 
 // Delete a zone

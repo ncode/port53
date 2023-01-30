@@ -99,14 +99,17 @@ func (r *BackendRoute) Update(c echo.Context) (err error) {
 		}
 		return err
 	}
-	newBackend := &model.Backend{}
-	if err := c.Bind(newBackend); err != nil {
+	newBackend := model.Backend{}
+	if err := c.Bind(&newBackend); err != nil {
 		return err
 	}
-	if (newBackend == nil) || (newBackend.Name == "") {
+	if newBackend.Name == "" {
 		return c.String(http.StatusBadRequest, "Name is required")
 	}
-	r.db.Model(&backend).Updates(&newBackend)
+	err = backend.Update(r.db, newBackend)
+	if err != nil {
+		return err
+	}
 	return JSONAPI(c, http.StatusOK, backend)
 }
 

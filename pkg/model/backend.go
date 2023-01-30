@@ -89,3 +89,8 @@ func (b *Backend) ReplaceZones(db *gorm.DB, zones []*Zone) (err error) {
 func (b *Backend) Delete(db *gorm.DB) (err error) {
 	return db.Delete(&b).Error
 }
+
+// Update a backend in the database
+func (b *Backend) Update(db *gorm.DB, backend Backend) (err error) {
+	return db.Model(b).Updates(backend).Error
+}
