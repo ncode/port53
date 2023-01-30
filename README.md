@@ -7,9 +7,29 @@ Dns management system
 
 #### Why?
 
-- Simplify DNS managent over multi DNS Server
-- Offer an api for DNS Servers that do not offer an api currently
+- I'm tired of building a different closed source dns service every other year
+- Having a DNS api that handles multi-tenant environments
+- Make possible to use either nsupdate or API on a user level to manage DNS entries
+- I'd like to have a single DNS Api over different DNS servers
 
-#### Current status of the project
+#### Roadmap
 
-vapourware with an api using jsonapi.org schema
+- [ ] Api
+  - [x] Backend CRUD
+  - [x] Domain CRUD
+  - [x] Record CRUD
+  - [ ] nsupdate
+- [ ] DNS Interface
+ - [ ] Validate queries against service
+- [ ] User management API
+  - [ ] User CRUD
+    - [ ] nsuppdate Keys
+    - [ ] API Keys
+  - [ ] User permissions
+- [ ] Agent
+ - [ ] Backends
+   - [ ] Bind
+   - [ ] PowerDNS
+   - [ ] NSD
+ - [ ] Small/Medium size deployment architecture
+ - [ ] Large scale deployment architecture
