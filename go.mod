@@ -1,6 +1,6 @@
 module github.com/ncode/port53
 
-go 1.20
+go 1.19
 
 require (
 	github.com/DataDog/jsonapi v0.4.0
