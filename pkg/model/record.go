@@ -39,6 +39,7 @@ func (r *Record) LinkRelation(relation string) *jsonapi.Link {
 }
 
 // BeforeCreate generates a new ULID for the record if needed
+// TOOO: Implement data validation for the record type and content
 func (r *Record) BeforeCreate(tx *gorm.DB) (err error) {
 	if r.ID == "" {
 		r.ID = ulid.Make().String()
@@ -76,7 +77,7 @@ func (r *Record) Update(db *gorm.DB, record Record) error {
 // ReplaceZone replaces the zone of the record
 func (r *Record) ReplaceZone(db *gorm.DB, zone *Zone) error {
 	return db.Transaction(func(tx *gorm.DB) error {
-		return tx.Model(r).Association("Zone").Replace(zone)
+		return tx.Model(r).Updates(Record{ZoneID: zone.ID}).Error
 	})
 }
 

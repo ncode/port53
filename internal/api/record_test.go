@@ -371,3 +371,61 @@ func TestRecordRoute_Update(t *testing.T) {
 		})
 	}
 }
+
+func TestRecordRoute_GetZone(t *testing.T) {
+	tests := []struct {
+		name               string
+		id                 string
+		input              string
+		zoneInput          string
+		expectedData       model.Zone
+		expectedStatusCode int
+	}{
+		{
+			name:               "valid input",
+			id:                 "01F1ZQZJXQXZJXZJXZJXZJXZRE",
+			input:              `{"data": {"id":"01F1ZQZJXQXZJXZJXZJXZJXZRE", "type": "records", "attributes": {"name": "internal.martinez.io", "type": "A", "ttl": 300, "content": "192.168.0.1"}, "relationships": { "zones": { "data": { "type": "zones", "id": "01F1ZQZJXQXZJXZJXZJXZJXZJX" }}}}}`,
+			zoneInput:          `{"data": {"id":"01F1ZQZJXQXZJXZJXZJXZJXZJX", "type": "zones", "attributes": {"name": "internal.martinez.io"}}}`,
+			expectedData:       model.Zone{ID: "01F1ZQZJXQXZJXZJXZJXZJXZJX", Name: "internal.martinez.io"},
+			expectedStatusCode: http.StatusOK,
+		},
+	}
+
+	e := echo.New()
+	e.Binder = &binder.JsonApiBinder{}
+
+	db, err := database.Database()
+	if err != nil {
+		panic(err)
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			routeZone := &ZoneRoute{db: db}
+			if test.zoneInput != "" {
+				c, _ := postTestRequest("/v1/zones", test.zoneInput, e)
+				err = routeZone.Create(c)
+				assert.NoError(t, err)
+			}
+
+			routeRecord := &RecordRoute{db: db}
+			if test.input != "" {
+				c, _ := postTestRequest("/v1/records", test.input, e)
+				err = routeRecord.Create(c)
+				assert.NoError(t, err)
+			}
+
+			c, rec := getTestRequest("/v1/records/:id/zone", e)
+			c.SetParamNames("id")
+			c.SetParamValues(test.id)
+			if assert.NoError(t, routeRecord.GetZone(c)) {
+				assert.Equal(t, test.expectedStatusCode, rec.Code)
+				assert.Equal(t, binder.MIMEApplicationJSONApi, rec.Header().Get(echo.HeaderContentType))
+				var zone model.Zone
+				assert.NoError(t, jsonapi.Unmarshal(rec.Body.Bytes(), &zone))
+				assert.Equal(t, test.expectedData.Name, zone.Name)
+				assert.Equal(t, test.expectedData.ID, zone.ID)
+			}
+		})
+	}
+}

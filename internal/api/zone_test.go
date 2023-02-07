@@ -30,8 +30,8 @@ func TestZonedRoute_Create(t *testing.T) {
 	}{
 		{
 			name:               "valid input",
-			input:              `{"data": {"id":"01F1ZQZJXQXZJXZJXZJXZJXZJX", "type": "zones", "attributes": {"name": "internal.martinez.io"}}}`,
-			expectedData:       &model.Zone{ID: "01F1ZQZJXQXZJXZJXZJXZJXZJX", Name: "internal.martinez.io"},
+			input:              `{"data": {"id":"01F1ZQZJXQXZJXZJXZJXZJXZJ1", "type": "zones", "attributes": {"name": "somethinsomething.martinez.io"}}}`,
+			expectedData:       &model.Zone{ID: "01F1ZQZJXQXZJXZJXZJXZJXZJ1", Name: "somethinsomething.martinez.io"},
 			expectedStatusCode: http.StatusCreated,
 		},
 		{
@@ -47,8 +47,8 @@ func TestZonedRoute_Create(t *testing.T) {
 		},
 		{
 			name:                   "name conflict",
-			input:                  `{"data": {"id":"01F1ZQZJXQXZJXZJXZJXZJXX0X", "type": "zones", "attributes": {"name": "internal.martinez.io"}}}`,
-			expectedLocationHeader: fmt.Sprintf("%s/v1/zones/%s", viper.GetString("serviceUrl"), "01F1ZQZJXQXZJXZJXZJXZJXZJX"),
+			input:                  `{"data": {"id":"01F1ZQZJXQXZJXZJXZJXZJXX0X", "type": "zones", "attributes": {"name": "somethinsomething.martinez.io"}}}`,
+			expectedLocationHeader: fmt.Sprintf("%s/v1/zones/%s", viper.GetString("serviceUrl"), "01F1ZQZJXQXZJXZJXZJXZJXZJ1"),
 			expectedStatusCode:     http.StatusConflict,
 		},
 	}
