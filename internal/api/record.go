@@ -157,6 +157,32 @@ func (r *RecordRoute) GetZone(c echo.Context) (err error) {
 	return JSONAPI(c, http.StatusOK, record.Zone)
 }
 
+// UpdateZone updates the zone of a record
+func (r *RecordRoute) UpdateZone(c echo.Context) (err error) {
+	record := model.Record{ID: c.Param("id")}
+	err = record.Get(r.db, true)
+	if err != nil {
+		if err.Error() == "record not found" {
+			return c.String(http.StatusNotFound, "Record not found")
+		}
+		return err
+	}
+	var newZone model.Zone
+	if err := c.Bind(&newZone); err != nil {
+		return err
+	}
+	err = record.ReplaceZone(r.db, &newZone)
+	if err != nil {
+		return err
+	}
+	err = record.Get(r.db, true)
+	if err != nil {
+
+	}
+
+	return JSONAPI(c, http.StatusOK, record.Zone)
+}
+
 // Register registers the routes
 func (r *RecordRoute) Register(e *echo.Echo) {
 	e.GET("/v1/records/:id", r.Get)
@@ -166,6 +192,5 @@ func (r *RecordRoute) Register(e *echo.Echo) {
 	e.GET("/v1/records", r.List)
 	// Relationships
 	e.GET("/v1/records/:id/zones", r.GetZone)
-	//e.PATCH("/v1/records/:id/zones", r.UpdateZone)
-	//e.DELETE("/v1/records/:id/zones", r.RemoveZone)
+	e.PATCH("/v1/records/:id/zones", r.UpdateZone)
 }

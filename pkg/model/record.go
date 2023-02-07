@@ -76,7 +76,7 @@ func (r *Record) Update(db *gorm.DB, record Record) error {
 // ReplaceZone replaces the zone of the record
 func (r *Record) ReplaceZone(db *gorm.DB, zone *Zone) error {
 	return db.Transaction(func(tx *gorm.DB) error {
-		return tx.Model(r).Association("Zone").Replace(zone)
+		return tx.Model(r).Updates(Record{ZoneID: zone.ID}).Error
 	})
 }
 

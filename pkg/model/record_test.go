@@ -106,3 +106,62 @@ func TestRecord_Delete(t *testing.T) {
 		})
 	}
 }
+
+func TestRecord_ReplaceZone(t *testing.T) {
+	tests := []struct {
+		name          string
+		record        Record
+		Zone          Zone
+		expectedError error
+	}{
+		{
+			name: "Update with valid ID",
+			record: Record{
+				ID: ulid.Make().String(),
+			},
+			Zone: Zone{
+				ID:   ulid.Make().String(),
+				Name: ulid.Make().String(),
+			},
+			expectedError: nil,
+		},
+	}
+	// Set up a test database and create a test zone
+	db, err := gorm.Open(sqlite.Open("file:zone?mode=memory&cache=shared"), &gorm.Config{})
+	if err != nil {
+		t.Fatalf("Error setting up test database: %s", err)
+	}
+	err = db.AutoMigrate(&Record{}, &Zone{})
+	if err != nil {
+		t.Fatalf("Error running the migration: %s", err)
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			err = db.Create(&test.record).Error
+			if err != nil {
+				t.Fatalf("Error creating record: %s", err)
+			}
+			err = db.Create(&test.Zone).Error
+			if err != nil {
+				t.Fatalf("Error creating zone: %s", err)
+			}
+
+			// Call the UpdateZone method and check the error
+			err := test.record.ReplaceZone(db, &test.Zone)
+			if err != nil {
+				if err == test.expectedError {
+					return
+				}
+				t.Errorf("Unexpected error: got %s, want %s", err, test.expectedError)
+			}
+			err = test.record.Get(db, true)
+			if err != nil {
+				t.Errorf("Unexpected error: got %s, want %s", err, test.expectedError)
+			}
+			if test.record.ZoneID != test.Zone.ID {
+				t.Errorf("Unexpected zone ID: got %s, want %s", test.record.ZoneID, test.Zone.ID)
+			}
+		})
+	}
+}
