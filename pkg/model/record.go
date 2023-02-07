@@ -39,6 +39,7 @@ func (r *Record) LinkRelation(relation string) *jsonapi.Link {
 }
 
 // BeforeCreate generates a new ULID for the record if needed
+// TOOO: Implement data validation for the record type and content
 func (r *Record) BeforeCreate(tx *gorm.DB) (err error) {
 	if r.ID == "" {
 		r.ID = ulid.Make().String()

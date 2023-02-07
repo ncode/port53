@@ -174,9 +174,10 @@ func TestRecord_Get(t *testing.T) {
 		expectedError error
 	}{
 		{
-			name: "Update with valid ID",
+			name: "Get with valid ID",
 			record: Record{
-				ID: ulid.Make().String(),
+				ID:   ulid.Make().String(),
+				Name: ulid.Make().String(),
 			},
 			Zone: Zone{
 				ID:   ulid.Make().String(),
