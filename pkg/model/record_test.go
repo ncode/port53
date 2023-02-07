@@ -85,7 +85,7 @@ func TestRecord_Delete(t *testing.T) {
 		},
 	}
 	// Set up a test database and create a test zone
-	db, err := gorm.Open(sqlite.Open("file:zone?mode=memory&cache=shared"), &gorm.Config{})
+	db, err := gorm.Open(sqlite.Open("file:record?mode=memory&cache=shared"), &gorm.Config{})
 	if err != nil {
 		t.Fatalf("Error setting up test database: %s", err)
 	}
@@ -127,7 +127,7 @@ func TestRecord_ReplaceZone(t *testing.T) {
 		},
 	}
 	// Set up a test database and create a test zone
-	db, err := gorm.Open(sqlite.Open("file:zone?mode=memory&cache=shared"), &gorm.Config{})
+	db, err := gorm.Open(sqlite.Open("file:record?mode=memory&cache=shared"), &gorm.Config{})
 	if err != nil {
 		t.Fatalf("Error setting up test database: %s", err)
 	}
