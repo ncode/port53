@@ -225,3 +225,249 @@ func TestBackend_Delete(t *testing.T) {
 		})
 	}
 }
+
+func TestBackend_Update(t *testing.T) {
+	tests := []struct {
+		name          string
+		backend       Backend
+		expectedError error
+	}{
+		{
+			name: "Successful update",
+			backend: Backend{
+				ID:   ulid.Make().String(),
+				Name: ulid.Make().String(),
+			},
+			expectedError: nil,
+		},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			// Set up a test database and create a test backend
+			db, err := gorm.Open(sqlite.Open("file:backend?mode=memory&cache=shared"), &gorm.Config{})
+			if err != nil {
+				t.Fatalf("Error setting up test database: %s", err)
+			}
+			err = db.AutoMigrate(&Backend{})
+			if err != nil {
+				t.Fatalf("Error running the migration: %s", err)
+			}
+			testBackend := Backend{
+				ID:        test.backend.ID,
+				CreatedAt: time.Now(),
+				UpdatedAt: time.Now(),
+				Name:      test.backend.Name,
+			}
+			if err := db.Create(&testBackend).Error; err != nil {
+				t.Fatalf("Error creating test backend: %s", err)
+			}
+
+			newBackend := Backend{Name: ulid.Make().String()}
+
+			// Call the Update method and check the error
+			err = test.backend.Update(db, newBackend)
+			if err != test.expectedError {
+				t.Errorf("Unexpected error: got %s, want %s", err, test.expectedError)
+			}
+
+			// Check that the backend is updated
+			updatedBackend := &Backend{ID: test.backend.ID}
+			err = updatedBackend.Get(db, false)
+			if err != err {
+				t.Errorf("Unexpected error: got %s", err)
+			}
+			if updatedBackend.Name != newBackend.Name {
+				t.Errorf("Unexpected Name: got %s, want %s", updatedBackend.Name, test.backend.Name)
+			}
+		})
+	}
+}
+
+func TestBackend_AddZone(t *testing.T) {
+	tests := []struct {
+		name          string
+		backend       Backend
+		zone          Zone
+		expectedError error
+	}{
+		{
+			name: "Successful add",
+			backend: Backend{
+				ID:   ulid.Make().String(),
+				Name: ulid.Make().String(),
+			},
+			zone: Zone{
+				ID:   ulid.Make().String(),
+				Name: ulid.Make().String(),
+			},
+			expectedError: nil,
+		},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			// Set up a test database and create a test backend
+			db, err := gorm.Open(sqlite.Open("file:backend?mode=memory&cache=shared"), &gorm.Config{})
+			if err != nil {
+				t.Fatalf("Error setting up test database: %s", err)
+			}
+			err = db.AutoMigrate(&Backend{}, &Zone{})
+			if err != nil {
+				t.Fatalf("Error running the migration: %s", err)
+			}
+
+			if err := db.Create(&test.backend).Error; err != nil {
+				t.Fatalf("Error creating test backend: %s", err)
+			}
+
+			if err := db.Create(&test.zone).Error; err != nil {
+				t.Fatalf("Error creating test zone: %s", err)
+			}
+
+			// Call the AddZone method and check the error
+			err = test.backend.AddZone(db, &test.zone)
+			if err != test.expectedError {
+				t.Errorf("Unexpected error: got %s, want %s", err, test.expectedError)
+			}
+
+			backend := &Backend{ID: test.backend.ID}
+			err = backend.Get(db, true)
+			if err != nil {
+				t.Errorf("Unexpected error: got %s", err)
+			}
+
+			if backend.Zones[0].ID != test.zone.ID {
+				t.Errorf("Unexpected zone: got %s, want %s", backend.Zones[0].ID, test.zone.ID)
+			}
+		})
+	}
+}
+
+func TestBackend_RemoveZone(t *testing.T) {
+	tests := []struct {
+		name          string
+		backend       Backend
+		zone          Zone
+		expectedError error
+	}{
+		{
+			name: "Successful remove",
+			backend: Backend{
+				ID:   ulid.Make().String(),
+				Name: ulid.Make().String(),
+			},
+			zone: Zone{
+				ID:   ulid.Make().String(),
+				Name: ulid.Make().String(),
+			},
+			expectedError: nil,
+		},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			// Set up a test database and create a test backend
+			db, err := gorm.Open(sqlite.Open("file:backend?mode=memory&cache=shared"), &gorm.Config{})
+			if err != nil {
+				t.Fatalf("Error setting up test database: %s", err)
+			}
+			err = db.AutoMigrate(&Backend{}, &Zone{})
+			if err != nil {
+				t.Fatalf("Error running the migration: %s", err)
+			}
+
+			if err := db.Create(&test.backend).Error; err != nil {
+				t.Fatalf("Error creating test backend: %s", err)
+			}
+
+			if err := db.Create(&test.zone).Error; err != nil {
+				t.Fatalf("Error creating test zone: %s", err)
+			}
+
+			if err := db.Model(&test.backend).Association("Zones").Append(&test.zone); err != nil {
+				t.Fatalf("Error adding zone to backend: %s", err)
+			}
+
+			// Call the RemoveZone method and check the error
+			err = test.backend.RemoveZone(db, &test.zone)
+			if err != test.expectedError {
+				t.Errorf("Unexpected error: got %s, want %s", err, test.expectedError)
+			}
+
+			backend := &Backend{ID: test.backend.ID}
+			err = backend.Get(db, true)
+			if err != nil {
+				t.Errorf("Unexpected error: got %s", err)
+			}
+
+			if len(backend.Zones) != 0 {
+				t.Errorf("Unexpected zone: got %s, want %s", backend.Zones[0].ID, test.zone.ID)
+			}
+		})
+	}
+}
+
+func TestBackend_ReplaceZones(t *testing.T) {
+	tests := []struct {
+		name          string
+		backend       Backend
+		zones         []*Zone
+		expectedError error
+	}{
+		{
+			name: "Successful replace",
+			backend: Backend{
+				ID:   ulid.Make().String(),
+				Name: ulid.Make().String(),
+			},
+			zones: []*Zone{
+				{
+					ID:   ulid.Make().String(),
+					Name: ulid.Make().String(),
+				},
+				{
+					ID:   ulid.Make().String(),
+					Name: ulid.Make().String(),
+				},
+			},
+			expectedError: nil,
+		},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			// Set up a test database and create a test backend
+			db, err := gorm.Open(sqlite.Open("file:backend?mode=memory&cache=shared"), &gorm.Config{})
+			if err != nil {
+				t.Fatalf("Error setting up test database: %s", err)
+			}
+			err = db.AutoMigrate(&Backend{}, &Zone{})
+			if err != nil {
+				t.Fatalf("Error running the migration: %s", err)
+			}
+
+			if err := db.Create(&test.backend).Error; err != nil {
+				t.Fatalf("Error creating test backend: %s", err)
+			}
+
+			for _, zone := range test.zones {
+				if err := db.Create(&zone).Error; err != nil {
+					t.Fatalf("Error creating test zone: %s", err)
+				}
+			}
+
+			// Call the ReplaceZones method and check the error
+			err = test.backend.ReplaceZones(db, test.zones)
+			if err != test.expectedError {
+				t.Errorf("Unexpected error: got %s, want %s", err, test.expectedError)
+			}
+
+			backend := &Backend{ID: test.backend.ID}
+			err = backend.Get(db, true)
+			if err != nil {
+				t.Errorf("Unexpected error: got %s", err)
+			}
+
+			if len(backend.Zones) != len(test.zones) {
+				t.Errorf("Unexpected zone: got %s, want %s", backend.Zones[0].ID, test.zones[0].ID)
+			}
+		})
+	}
+}
