@@ -238,6 +238,66 @@ func TestBackendRoute_List(t *testing.T) {
 	}
 }
 
+func TestBackendRoute_List_WithFilter(t *testing.T) {
+	defer TearDown()
+
+	tests := []struct {
+		name               string
+		input              string
+		filter             string
+		expectedData       []model.Backend
+		expectedStatusCode int
+		expectedError      string
+	}{
+		{
+			name:               "valid input",
+			input:              `{"data": {"id":"01F1ZQZJXQXZJXZJXZJXZJXZJX", "type": "backends", "attributes": {"name": "bind"}}}`,
+			filter:             "filter[name]=bind",
+			expectedData:       []model.Backend{{ID: "01F1ZQZJXQXZJXZJXZJXZJXZJX", Name: "bind"}},
+			expectedStatusCode: http.StatusOK,
+		},
+		{
+			name:               "missing filter",
+			input:              `{"data": {"id":"01F1ZQZJXQXZJXZJXZJXZJXZJX", "type": "backends", "attributes": {"name": "bind"}}}`,
+			filter:             "filter[name]=pdns",
+			expectedData:       []model.Backend{},
+			expectedStatusCode: http.StatusOK,
+			expectedError:      "body is not a json:api representation of *[]model.Backend",
+		},
+	}
+	e := echo.New()
+	e.Binder = &binder.JsonApiBinder{}
+
+	db, err := database.Database()
+	if err != nil {
+		panic(err)
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			route := &BackendRoute{db: db}
+			c, _ := postTestRequest("/v1/backends", test.input, e)
+			err = route.Create(c)
+			assert.NoError(t, err)
+
+			c, rec := getTestRequest("/v1/backends?"+test.filter, e)
+			if assert.NoError(t, route.List(c)) {
+				assert.Equal(t, test.expectedStatusCode, rec.Code)
+				var backends []model.Backend
+				if test.expectedError != "" {
+					assert.Equal(t, test.expectedError, jsonapi.Unmarshal(rec.Body.Bytes(), &backends).Error())
+				} else {
+					assert.NoError(t, jsonapi.Unmarshal(rec.Body.Bytes(), &backends))
+				}
+				if len(backends) > 0 {
+					assert.Equal(t, test.expectedData[0].ID, backends[0].ID)
+					assert.Equal(t, test.expectedData[0].Name, backends[0].Name)
+				}
+			}
+		})
+	}
+}
+
 func TestBackendRoute_Update(t *testing.T) {
 	defer TearDown()
 
