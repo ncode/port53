@@ -297,6 +297,73 @@ func TestZoneRoute_List(t *testing.T) {
 	}
 }
 
+func TestZoneRoute_List_With_Filters(t *testing.T) {
+	defer TearDown()
+
+	tests := []struct {
+		name               string
+		input              string
+		expectedData       []model.Zone
+		filter             string
+		expectedError      string
+		expectedStatusCode int
+	}{
+		{
+			name:               "valid input",
+			input:              `{"data": {"id":"01GQ0MJ5N2X42FB43WC25XDE1A", "type": "zones", "attributes": {"name": "external.martinez.io"}}}`,
+			expectedData:       []model.Zone{{ID: "01GQ0MJ5N2X42FB43WC25XDE1A", Name: "external.martinez.io"}},
+			filter:             "filter[name]=external.martinez.io",
+			expectedStatusCode: http.StatusOK,
+		},
+		{
+			name:               "valid input",
+			input:              `{"data": {"id":"01GQ0MJ5N2X42FB43WC25XDE1E", "type": "zones", "attributes": {"name": "internal.martinez.io"}}}`,
+			expectedData:       []model.Zone{{ID: "01GQ0MJ5N2X42FB43WC25XDE1E", Name: "internal.martinez.io"}},
+			filter:             "filter[name]=internal.martinez.io",
+			expectedStatusCode: http.StatusOK,
+		},
+		{
+			name:               "valid input",
+			input:              `{"data": {"id":"01GQ0MJ5N2X42FB43WC25XDE1A", "type": "zones", "attributes": {"name": "meh.martinez.io"}}}`,
+			expectedData:       []model.Zone{},
+			filter:             "filter[name]=nonnon.martinez.io",
+			expectedError:      "body is not a json:api representation of *[]model.Zone",
+			expectedStatusCode: http.StatusOK,
+		},
+	}
+	e := echo.New()
+	e.Binder = &binder.JsonApiBinder{}
+
+	db, err := database.Database()
+	if err != nil {
+		panic(err)
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			route := &ZoneRoute{db: db}
+			c, _ := postTestRequest("/v1/zones", test.input, e)
+			err = route.Create(c)
+			assert.NoError(t, err)
+
+			c, rec := getTestRequest("/v1/zones?"+test.filter, e)
+			if assert.NoError(t, route.List(c)) {
+				assert.Equal(t, test.expectedStatusCode, rec.Code)
+				var zones []model.Zone
+				if test.expectedError != "" {
+					assert.Equal(t, test.expectedError, jsonapi.Unmarshal(rec.Body.Bytes(), &zones).Error())
+				} else {
+					assert.NoError(t, jsonapi.Unmarshal(rec.Body.Bytes(), &zones))
+				}
+				if len(test.expectedData) > 0 {
+					assert.Equal(t, test.expectedData[0].ID, zones[0].ID)
+					assert.Equal(t, test.expectedData[0].Name, zones[0].Name)
+				}
+			}
+		})
+	}
+}
+
 func TestZonedRoute_GetBackend(t *testing.T) {
 	defer TearDown()
 
