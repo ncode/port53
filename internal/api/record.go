@@ -71,7 +71,6 @@ func (r *RecordRoute) List(c echo.Context) (err error) {
 				case "name":
 					f = "name = ?"
 				}
-				fmt.Println(f, c)
 				tx = tx.Where(f, c)
 			}
 		}
