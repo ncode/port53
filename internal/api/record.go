@@ -83,7 +83,7 @@ func (r *RecordRoute) List(c echo.Context) (err error) {
 	}
 
 	if len(records) == 0 {
-		return c.String(http.StatusNotFound, "No records found")
+		return JSONAPI(c, http.StatusOK, records)
 	}
 
 	for pos := range records {

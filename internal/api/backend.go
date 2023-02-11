@@ -86,6 +86,9 @@ func (r *BackendRoute) List(c echo.Context) (err error) {
 	}
 
 	p.SetLinks(fmt.Sprintf("/v1/backends?%s", query.BuildQuery()))
+	if len(backends) == 0 {
+		return JSONAPI(c, http.StatusOK, backends)
+	}
 	return JSONAPIPaginated(c, http.StatusOK, backends, p.Link())
 }
 
