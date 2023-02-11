@@ -41,8 +41,8 @@ func TestZonedRoute_Create(t *testing.T) {
 		},
 		{
 			name:                   "id conflict",
-			input:                  `{"data": {"id":"01F1ZQZJXQXZJXZJXZJXZJXZJX", "type": "zones", "attributes": {"name": "zones"}}}`,
-			expectedLocationHeader: fmt.Sprintf("%s/v1/zones/%s", viper.GetString("serviceUrl"), "01F1ZQZJXQXZJXZJXZJXZJXZJX"),
+			input:                  `{"data": {"id":"01F1ZQZJXQXZJXZJXZJXZJXZJ1", "type": "zones", "attributes": {"name": "zones"}}}`,
+			expectedLocationHeader: fmt.Sprintf("%s/v1/zones/%s", viper.GetString("serviceUrl"), "01F1ZQZJXQXZJXZJXZJXZJXZJ1"),
 			expectedStatusCode:     http.StatusConflict,
 		},
 		{

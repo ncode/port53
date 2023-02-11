@@ -56,7 +56,7 @@ func TestBackend_Get(t *testing.T) {
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 			// Set up a test database and create a test zone
-			db, err := gorm.Open(sqlite.Open("file:backend?mode=memory&cache=shared"), &gorm.Config{})
+			db, err := gorm.Open(sqlite.Open("file:backend_model?mode=memory&cache=shared"), &gorm.Config{})
 			if err != nil {
 				t.Fatalf("Error setting up test database: %s", err)
 			}
@@ -188,7 +188,7 @@ func TestBackend_Delete(t *testing.T) {
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 			// Set up a test database and create a test zone
-			db, err := gorm.Open(sqlite.Open("file:backend?mode=memory&cache=shared"), &gorm.Config{})
+			db, err := gorm.Open(sqlite.Open("file:backend_model?mode=memory&cache=shared"), &gorm.Config{})
 			if err != nil {
 				t.Fatalf("Error setting up test database: %s", err)
 			}
@@ -244,7 +244,7 @@ func TestBackend_Update(t *testing.T) {
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 			// Set up a test database and create a test backend
-			db, err := gorm.Open(sqlite.Open("file:backend?mode=memory&cache=shared"), &gorm.Config{})
+			db, err := gorm.Open(sqlite.Open("file:backend_model?mode=memory&cache=shared"), &gorm.Config{})
 			if err != nil {
 				t.Fatalf("Error setting up test database: %s", err)
 			}
@@ -306,7 +306,7 @@ func TestBackend_AddZone(t *testing.T) {
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 			// Set up a test database and create a test backend
-			db, err := gorm.Open(sqlite.Open("file:backend?mode=memory&cache=shared"), &gorm.Config{})
+			db, err := gorm.Open(sqlite.Open("file:backend_model?mode=memory&cache=shared"), &gorm.Config{})
 			if err != nil {
 				t.Fatalf("Error setting up test database: %s", err)
 			}
@@ -365,7 +365,7 @@ func TestBackend_RemoveZone(t *testing.T) {
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 			// Set up a test database and create a test backend
-			db, err := gorm.Open(sqlite.Open("file:backend?mode=memory&cache=shared"), &gorm.Config{})
+			db, err := gorm.Open(sqlite.Open("file:backend_model?mode=memory&cache=shared"), &gorm.Config{})
 			if err != nil {
 				t.Fatalf("Error setting up test database: %s", err)
 			}
@@ -434,7 +434,7 @@ func TestBackend_ReplaceZones(t *testing.T) {
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 			// Set up a test database and create a test backend
-			db, err := gorm.Open(sqlite.Open("file:backend?mode=memory&cache=shared"), &gorm.Config{})
+			db, err := gorm.Open(sqlite.Open("file:backend_model?mode=memory&cache=shared"), &gorm.Config{})
 			if err != nil {
 				t.Fatalf("Error setting up test database: %s", err)
 			}
