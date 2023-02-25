@@ -177,7 +177,7 @@ func (r *RecordRoute) UpdateZone(c echo.Context) (err error) {
 	}
 	err = record.Get(r.db, true)
 	if err != nil {
-
+		return err
 	}
 
 	return JSONAPI(c, http.StatusOK, record.Zone)
