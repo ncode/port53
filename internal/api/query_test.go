@@ -76,6 +76,12 @@ func TestParseQuery(t *testing.T) {
 			expectedError: "strconv.Atoi: parsing \"a\": invalid syntax",
 		},
 		{
+			name:          "parse pagination",
+			queryString:   "%G",
+			expected:      nil,
+			expectedError: "invalid URL escape \"%G\"",
+		},
+		{
 			name:        "parse multiple parameters",
 			queryString: "filter[name]=Mary&filter[age]=25&page[size]=20&page[number]=10&include=author&fields[articles]=title,body&fields[people]=name&sort=age",
 			expected: &Query{
