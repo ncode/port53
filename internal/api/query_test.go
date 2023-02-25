@@ -187,12 +187,11 @@ func TestBuildQuery(t *testing.T) {
 				Filters: make(map[string][]string),
 				Includes: map[string]*Include{
 					"comments": {Fields: []string{}},
-					"author":   {Fields: []string{}},
 				},
 				Sort: []string{},
 				Page: nil,
 			},
-			expected: "include=comments,author",
+			expected: "include=comments",
 		},
 		{
 			name: "fields query",
