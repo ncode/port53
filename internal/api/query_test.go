@@ -4,6 +4,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"reflect"
+	"strings"
 	"testing"
 
 	"github.com/labstack/echo/v4"
@@ -11,9 +12,10 @@ import (
 
 func TestParseQuery(t *testing.T) {
 	testCases := []struct {
-		name        string
-		queryString string
-		expected    *Query
+		name          string
+		queryString   string
+		expected      *Query
+		expectedError string
 	}{
 		{
 			name:        "parse filters",
@@ -62,6 +64,18 @@ func TestParseQuery(t *testing.T) {
 			},
 		},
 		{
+			name:          "parse pagination",
+			queryString:   "page[size]=a&page[number]=1",
+			expected:      nil,
+			expectedError: "strconv.Atoi: parsing \"a\": invalid syntax",
+		},
+		{
+			name:          "parse pagination",
+			queryString:   "page[size]=1&page[number]=a",
+			expected:      nil,
+			expectedError: "strconv.Atoi: parsing \"a\": invalid syntax",
+		},
+		{
 			name:        "parse multiple parameters",
 			queryString: "filter[name]=Mary&filter[age]=25&page[size]=20&page[number]=10&include=author&fields[articles]=title,body&fields[people]=name&sort=age",
 			expected: &Query{
@@ -90,6 +104,9 @@ func TestParseQuery(t *testing.T) {
 			c := echo.New().NewContext(req, httptest.NewRecorder())
 			query, err := ParseQuery(c)
 			if err != nil {
+				if strings.Compare(err.Error(), tc.expectedError) == 0 {
+					return
+				}
 				t.Fatalf("unexpected error: %v", err)
 			}
 			if len(query.Filters) != len(tc.expected.Filters) {
